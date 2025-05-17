@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Home, ShoppingCart, ClipboardList, Truck, Box, Users, Bike, BarChart2, Settings, LifeBuoy, LogOut, Pizza } from "lucide-react";
+import { Home, ShoppingCart, ClipboardList, Truck, Box, Users, Bike, BarChart2, Settings, LifeBuoy, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -36,9 +36,22 @@ export function MainSidebar() {
     <Sidebar variant="sidebar" collapsible="icon">
       <SidebarHeader className="p-4">
         <Link href="/dashboard" className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
-          <Pizza className="h-8 w-8 text-primary" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-8 w-8 text-primary"
+          >
+            <circle cx="12" cy="12" r="10" />
+          </svg>
           <h1 className={cn("text-xl font-semibold group-data-[collapsible=icon]:hidden")}>
-            OmniSales Hub
+            PDV OCA
           </h1>
         </Link>
       </SidebarHeader>
