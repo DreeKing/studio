@@ -1,9 +1,11 @@
+"use client"; // Added because Recharts components are used directly
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { DatePickerWithRange } from "@/components/ui/date-range-picker"; // Assume this component exists or create it
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart, LineChart, PieChart, Download, FileText } from "lucide-react";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { Download, FileText } from "lucide-react"; // Removed BarChart, LineChart, PieChart as Recharts components are used directly
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
 import { Bar as RechartsBar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Pie as RechartsPie, PieChart as RechartsPieChart, Cell, Line as RechartsLine, LineChart as RechartsLineChart } from "recharts";
 
 // Dummy data for charts
@@ -36,8 +38,7 @@ const chartConfig = {
   ifood: { label: "iFood", color: "hsl(var(--chart-2))" },
   ze: { label: "Zé Delivery", color: "hsl(var(--chart-3))" },
   whatsapp: { label: "WhatsApp", color: "hsl(var(--chart-4))" },
-  // ... add other products/categories if needed for legends
-} satisfies import("@/components/ui/chart").ChartConfig;
+} satisfies ChartConfig;
 
 const COLORS = [
     "hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"
@@ -49,7 +50,7 @@ export default function ReportsPage() {
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Relatórios</h1>
         <div className="flex gap-2 items-center">
-          <DatePickerWithRange /> {/* Assume this component exists */}
+          <DatePickerWithRange />
           <Select defaultValue="daily">
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Período" />
@@ -134,63 +135,6 @@ export default function ReportsPage() {
             </ChartContainer>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-// Simple Date Range Picker for demo
-import React from "react";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { addDays, format } from "date-fns";
-import { DateRange } from "react-day-picker";
-import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-
-export function DatePickerWithRange({ className }: React.HTMLAttributes<HTMLDivElement>) {
-  const [date, setDate] = React.useState<DateRange | undefined>({
-    from: new Date(2024, 6, 20),
-    to: addDays(new Date(2024, 6, 20), 7),
-  });
-
-  return (
-    <div className={cn("grid gap-2", className)}>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            id="date"
-            variant={"outline"}
-            className={cn(
-              "w-[260px] justify-start text-left font-normal",
-              !date && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {date?.from ? (
-              date.to ? (
-                <>
-                  {format(date.from, "LLL dd, y")} -{" "}
-                  {format(date.to, "LLL dd, y")}
-                </>
-              ) : (
-                format(date.from, "LLL dd, y")
-              )
-            ) : (
-              <span>Selecione um período</span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="end">
-          <Calendar
-            initialFocus
-            mode="range"
-            defaultMonth={date?.from}
-            selected={date}
-            onSelect={setDate}
-            numberOfMonths={2}
-          />
-        </PopoverContent>
-      </Popover>
     </div>
   );
 }
