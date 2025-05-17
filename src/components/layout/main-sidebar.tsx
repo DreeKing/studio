@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/cash-register/open", label: "Abrir Caixa", icon: Landmark },
+  { href: "/cash-register/open", label: "Caixa", icon: Landmark },
   { href: "/sales", label: "Vendas (PDV)", icon: ShoppingCart },
   { href: "/orders", label: "Pedidos", icon: ClipboardList },
   { href: "/delivery", label: "Delivery", icon: Truck },
@@ -63,7 +63,7 @@ export function MainSidebar() {
             <SidebarMenuItem key={item.href}>
               <Link href={item.href} legacyBehavior passHref>
                 <SidebarMenuButton
-                  isActive={pathname === item.href || (item.href !== "/dashboard" && item.href !== "/cash-register/open" && pathname.startsWith(item.href))}
+                  isActive={pathname === item.href || (item.href !== "/dashboard" && item.href !== "/cash-register/open" && pathname.startsWith(item.href) || (item.href === "/cash-register/open" && pathname.startsWith("/cash-register")))}
                   tooltip={{ children: item.label, side: "right", className:"bg-card text-card-foreground border-border shadow-md" }}
                   className="justify-start"
                 >
