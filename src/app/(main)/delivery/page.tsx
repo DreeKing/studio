@@ -24,6 +24,8 @@ const initialDeliveries: Delivery[] = [
   { id: "#D1002", orderId: "#10234", customer: "João Silva", address: "Av. Central, 456, Apto 78", courier: null, status: "Aguardando Entregador" },
   { id: "#D1003", orderId: "#P7801", customer: "Fernanda Lima (iFood)", address: "Alameda dos Anjos, 789", courier: "Ana Beatriz", status: "Entregue" },
   { id: "#D1004", orderId: "#W9011", customer: "Roberto Carlos", address: "Rua Azul, 10", courier: null, status: "Cancelado" },
+  { id: "#D1005", orderId: "#10239", customer: "Mariana Souza", address: "Rua das Flores, 222", courier: null, status: "Aguardando Entregador" },
+  { id: "#D1006", orderId: "#10240", customer: "Pedro Almeida", address: "Av. Brasil, 1000", courier: "Carlos Silva", status: "Em Rota" },
 ];
 
 const courierOptions = ["Carlos Silva", "Ana Beatriz", "Roberto Alves", "Entregador iFood", "Entregador Zé Delivery"];
@@ -33,6 +35,8 @@ const incomingOrders = [
   { id: "IF1001", source: "iFood", items: "1x Pizza Calabreza, 1x Refri 2L", status: "Novo", time: "2 min atrás" },
   { id: "ZD2005", source: "Zé Delivery", items: "6x Cerveja Lata", status: "Novo", time: "5 min atrás" },
   { id: "WA3012", source: "WhatsApp", items: "2x Temaki Salmão", status: "Confirmar", time: "8 min atrás" },
+  { id: "IF1002", source: "iFood", items: "2x Hamburguer, 1x Batata Frita", status: "Novo", time: "10 min atrás" },
+  { id: "WA3013", source: "WhatsApp", items: "1x Açaí 500ml", status: "Confirmar", time: "12 min atrás" },
 ];
 
 export default function DeliveryPage() {
@@ -114,11 +118,11 @@ export default function DeliveryPage() {
             <CardHeader>
               <CardTitle>Pedidos para Entrega</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 max-h-[calc(100vh-var(--header-height,4rem)-20rem)]">
-              <ScrollArea className="h-full pr-2">
+            <CardContent className="p-0"> {/* Removed padding and max-height here */}
+              <ScrollArea className="h-[350px] p-4 pr-6"> {/* Added specific height and padding to ScrollArea */}
                 {deliveryList.filter(d => d.status !== "Cancelado").length > 0 ? 
                   deliveryList.filter(d => d.status !== "Cancelado").map((delivery) => (
-                    <Card key={delivery.id} className="p-4 mb-3">
+                    <Card key={delivery.id} className="p-3 mb-3 shadow-sm">
                       <div className="flex justify-between items-start">
                         <div>
                           <h3 className="font-semibold">{delivery.orderId} - {delivery.customer}</h3>
@@ -172,7 +176,7 @@ export default function DeliveryPage() {
                            </>
                         )}
                       </div>
-                      {delivery.status !== "Entregue" && (
+                      {delivery.status !== "Entregue" && delivery.status !== "Cancelado" && (
                         <Button variant="outline" size="sm" className="mt-3 w-full">
                           <Send className="mr-2 h-4 w-4" /> Enviar Notificação WhatsApp
                         </Button>
@@ -191,10 +195,10 @@ export default function DeliveryPage() {
               <CardTitle>Pedidos Recebidos</CardTitle>
               <CardDescription>iFood, Zé Delivery, WhatsApp</CardDescription>
             </CardHeader>
-            <CardContent className="max-h-64">
-              <ScrollArea className="h-full pr-2">
+            <CardContent className="p-0"> {/* Removed padding and max-height here */}
+              <ScrollArea className="h-[250px] p-4 pr-6"> {/* Added specific height and padding to ScrollArea */}
               {incomingOrders.length > 0 ? incomingOrders.map(order => (
-                <div key={order.id} className="p-2 mb-2 border rounded-md hover:bg-secondary/50 transition-colors">
+                <div key={order.id} className="p-3 mb-2 border rounded-md hover:bg-secondary/50 transition-colors shadow-sm">
                   <div className="flex justify-between items-center text-sm">
                     <span className="font-semibold">{order.id} ({order.source})</span>
                     <span className="text-xs text-muted-foreground">{order.time}</span>
