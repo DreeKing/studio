@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Search, CreditCard, DollarSign, ScanLine, MessageSquare, Package, Trash2 } from "lucide-react";
+import { PlusCircle, Search, CreditCard, DollarSign, ScanLine, Trash2 } from "lucide-react";
 import Image from "next/image";
 
 // Dummy data for products and categories
@@ -18,13 +18,6 @@ const products = [
   { id: 3, name: "Pudim", price: 8.00, category: "Sobremesas", image: "https://placehold.co/100x100.png", "data-ai-hint":"dessert food" },
   { id: 4, name: "X-Burger", price: 20.00, category: "Lanches", image: "https://placehold.co/100x100.png", "data-ai-hint":"burger food" },
   { id: 5, name: "Combo Família", price: 70.00, category: "Combos", image: "https://placehold.co/100x100.png", "data-ai-hint":"family meal" },
-];
-
-// Dummy data for incoming orders
-const incomingOrders = [
-  { id: "IF1001", source: "iFood", items: "1x Pizza Calabreza, 1x Refri 2L", status: "Novo", time: "2 min atrás" },
-  { id: "ZD2005", source: "Zé Delivery", items: "6x Cerveja Lata", status: "Novo", time: "5 min atrás" },
-  { id: "WA3012", source: "WhatsApp", items: "2x Temaki Salmão", status: "Confirmar", time: "8 min atrás" },
 ];
 
 const initialOrderItems = [
@@ -141,34 +134,7 @@ export default function SalesPage() {
             </Button>
           </CardHeader>
         </Card>
-
-        <Card className="shadow-xl max-h-64 flex flex-col">
-          <CardHeader>
-            <CardTitle>Pedidos Recebidos</CardTitle>
-            <CardDescription>iFood, Zé Delivery, WhatsApp</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-hidden">
-            <ScrollArea className="h-full pr-2">
-            {incomingOrders.map(order => (
-              <div key={order.id} className="p-2 mb-2 border rounded-md hover:bg-secondary/50 transition-colors">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="font-semibold">{order.id} ({order.source})</span>
-                  <span className="text-xs text-muted-foreground">{order.time}</span>
-                </div>
-                <p className="text-xs truncate">{order.items}</p>
-                <div className="flex justify-end mt-1">
-                   {order.source === "iFood" && <Package className="h-4 w-4 text-red-500" />}
-                   {order.source === "Zé Delivery" && <Package className="h-4 w-4 text-yellow-500" />}
-                   {order.source === "WhatsApp" && <MessageSquare className="h-4 w-4 text-green-500" />}
-                  <Button variant="link" size="sm" className="h-auto p-0 ml-2 text-primary">{order.status === "Novo" ? "Aceitar" : "Ver"}</Button>
-                </div>
-              </div>
-            ))}
-            </ScrollArea>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
 }
-
