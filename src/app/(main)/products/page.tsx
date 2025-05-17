@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle, Edit, Trash2, Search, UploadCloud, DownloadCloud } from "lucide-react";
 import Image from "next/image";
+import { useToast } from "@/hooks/use-toast";
 
 interface Product {
   id: string;
@@ -64,6 +65,7 @@ const defaultAddProductForm = {
 };
 
 export default function ProductsPage() {
+  const { toast } = useToast();
   const [productsList, setProductsList] = useState<Product[]>(transformedInitialProducts);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -110,12 +112,17 @@ export default function ProductsPage() {
       stock: parseInt(addProductForm.stock) || 0,
       description: addProductForm.description,
       active: true,
-      image: addProductForm.image, // Use default or allow image upload later
+      image: addProductForm.image, 
       "data-ai-hint": addProductForm["data-ai-hint"],
     };
     setProductsList(prev => [newProduct, ...prev]);
     setIsAddDialogOpen(false);
     setAddProductForm(defaultAddProductForm); // Reset form
+    toast({
+        title: "Produto Adicionado!",
+        description: `${newProduct.name} foi cadastrado com sucesso.`,
+        className: "bg-green-500 text-white",
+    });
   };
 
   const handleOpenEditDialog = (productToEdit: Product) => {
@@ -135,7 +142,7 @@ export default function ProductsPage() {
   };
   
   const handleEditInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value } = e.target;
+    const { id, value } = e.target; // Changed id to name for HTML standard
     setEditProductForm(prev => ({ ...prev, [id]: value }));
   };
 
@@ -146,26 +153,38 @@ export default function ProductsPage() {
       prevProducts.map(p =>
         p.id === editingProduct.id
           ? {
-              ...p, // keep active status, image, data-ai-hint from original unless changed
+              ...p, 
               name: editProductForm.name,
               ean: editProductForm.ean,
               category: editProductForm.category,
               price: parseFloat(editProductForm.price) || 0,
               stock: parseInt(editProductForm.stock) || 0,
               description: editProductForm.description,
-              // image and data-ai-hint could be part of edit form if needed
             }
           : p
       )
     );
     setIsEditDialogOpen(false);
     setEditingProduct(null);
+    toast({
+        title: "Produto Atualizado!",
+        description: `Os dados de ${editProductForm.name} foram atualizados.`,
+        className: "bg-green-500 text-white",
+    });
   };
 
   const handleDeleteProduct = (productId: string) => {
-    // Basic confirmation for now
     if (window.confirm("Tem certeza que deseja excluir este produto?")) {
         setProductsList(prevProducts => prevProducts.filter(p => p.id !== productId));
+        toast({ 
+            title: "Produto Excluído!", 
+            description: "O produto foi removido com sucesso.",
+            className: "bg-green-500 text-white"
+        });
+        if (editingProduct && editingProduct.id === productId) {
+            setIsEditDialogOpen(false);
+            setEditingProduct(null);
+        }
     }
   };
 
@@ -286,9 +305,6 @@ export default function ProductsPage() {
                     <Button variant="ghost" size="icon" className="mr-1 hover:text-primary" onClick={() => handleOpenEditDialog(product)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleDeleteProduct(product.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -316,27 +332,27 @@ export default function ProductsPage() {
               <Input type="hidden" id="id" value={editProductForm.id} />
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="editName" className="text-right">Nome</Label>
-                <Input id="editName" name="name" placeholder="Ex: Pizza Calabresa" className="col-span-3" value={editProductForm.name} onChange={handleEditInputChange} required />
+                <Input id="name" name="name" placeholder="Ex: Pizza Calabresa" className="col-span-3" value={editProductForm.name} onChange={handleEditInputChange} required />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="editEan" className="text-right">EAN</Label>
-                <Input id="editEan" name="ean" placeholder="Código de barras do produto" className="col-span-3" value={editProductForm.ean} onChange={handleEditInputChange} required/>
+                <Input id="ean" name="ean" placeholder="Código de barras do produto" className="col-span-3" value={editProductForm.ean} onChange={handleEditInputChange} required/>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="editCategory" className="text-right">Categoria</Label>
-                <Input id="editCategory" name="category" placeholder="Ex: Pizzas" className="col-span-3" value={editProductForm.category} onChange={handleEditInputChange} required/>
+                <Input id="category" name="category" placeholder="Ex: Pizzas" className="col-span-3" value={editProductForm.category} onChange={handleEditInputChange} required/>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="editPrice" className="text-right">Preço (R$)</Label>
-                <Input id="editPrice" name="price" type="number" placeholder="Ex: 35.90" className="col-span-3 appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none" value={editProductForm.price} onChange={handleEditInputChange} required min="0" step="0.01"/>
+                <Input id="price" name="price" type="number" placeholder="Ex: 35.90" className="col-span-3 appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none" value={editProductForm.price} onChange={handleEditInputChange} required min="0" step="0.01"/>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="editStock" className="text-right">Estoque</Label>
-                <Input id="editStock" name="stock" type="number" placeholder="Ex: 100" className="col-span-3 appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none" value={editProductForm.stock} onChange={handleEditInputChange} required min="0" step="1"/>
+                <Input id="stock" name="stock" type="number" placeholder="Ex: 100" className="col-span-3 appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none" value={editProductForm.stock} onChange={handleEditInputChange} required min="0" step="1"/>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="editDescription" className="text-right">Descrição</Label>
-                <Textarea id="editDescription" name="description" placeholder="Detalhes do produto..." className="col-span-3" value={editProductForm.description} onChange={handleEditInputChange} />
+                <Textarea id="description" name="description" placeholder="Detalhes do produto..." className="col-span-3" value={editProductForm.description} onChange={handleEditInputChange} />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="editImage" className="text-right">Foto</Label>
@@ -344,9 +360,19 @@ export default function ProductsPage() {
                 {/* File input handling is complex, disabling for now */}
               </div>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
-              <Button type="submit">Salvar Alterações</Button>
+            <DialogFooter className="sm:justify-between">
+                <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => editingProduct && handleDeleteProduct(editingProduct.id)}
+                    className="mr-auto"
+                >
+                    <Trash2 className="mr-2 h-4 w-4" /> Excluir Produto
+                </Button>
+                <div className="flex items-center">
+                    <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="mr-2">Cancelar</Button>
+                    <Button type="submit">Salvar Alterações</Button>
+                </div>
             </DialogFooter>
           </form>
         </DialogContent>

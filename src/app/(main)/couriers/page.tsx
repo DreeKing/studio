@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, Edit, Trash2, Search, Bike, Mail } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Courier {
   id: string;
@@ -35,6 +36,7 @@ const defaultAddCourierForm = {
 };
 
 export default function CouriersPage() {
+  const { toast } = useToast();
   const [couriersList, setCouriersList] = useState<Courier[]>(initialCouriersData);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -74,6 +76,11 @@ export default function CouriersPage() {
     setCouriersList(prev => [newCourier, ...prev]);
     setIsAddDialogOpen(false);
     setAddCourierForm(defaultAddCourierForm); // Reset form
+    toast({
+        title: "Entregador Adicionado!",
+        description: `${newCourier.name} foi cadastrado com sucesso.`,
+        className: "bg-green-500 text-white",
+    });
   };
 
   const handleOpenEditDialog = (courierToEdit: Courier) => {
@@ -95,11 +102,6 @@ export default function CouriersPage() {
     setEditCourierForm(prev => ({ ...prev, [id]: value }));
   };
   
-  // Handler for status change in edit form (if using a select or radio group in the future)
-  // const handleEditStatusChange = (value: Courier["status"]) => {
-  //   setEditCourierForm(prev => ({ ...prev, status: value }));
-  // };
-
   const handleSaveEditedCourier = (e: FormEvent) => {
     e.preventDefault();
     if (!editingCourier) return;
@@ -113,18 +115,31 @@ export default function CouriersPage() {
               email: editCourierForm.email,
               vehicle: editCourierForm.vehicle,
               plate: editCourierForm.plate || "N/A",
-              // status: editCourierForm.status, // Status editing can be added here
             }
           : c
       )
     );
     setIsEditDialogOpen(false);
     setEditingCourier(null);
+    toast({
+        title: "Entregador Atualizado!",
+        description: `Os dados de ${editCourierForm.name} foram atualizados.`,
+        className: "bg-green-500 text-white",
+    });
   };
 
   const handleDeleteCourier = (courierId: string) => {
     if (window.confirm("Tem certeza que deseja excluir este entregador?")) {
         setCouriersList(prevCouriers => prevCouriers.filter(c => c.id !== courierId));
+        toast({ 
+            title: "Entregador Excluído!", 
+            description: "O entregador foi removido.", 
+            className: "bg-green-500 text-white" 
+        });
+        if (editingCourier && editingCourier.id === courierId) {
+            setIsEditDialogOpen(false);
+            setEditingCourier(null);
+        }
     }
   };
 
@@ -228,9 +243,6 @@ export default function CouriersPage() {
                     <Button variant="ghost" size="icon" className="mr-1 hover:text-primary" onClick={() => handleOpenEditDialog(courier)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleDeleteCourier(courier.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -276,25 +288,20 @@ export default function CouriersPage() {
                 <Label htmlFor="plate" className="text-right">Placa</Label>
                 <Input id="plate" className="col-span-3" value={editCourierForm.plate} onChange={handleEditInputChange} />
               </div>
-              {/* Status editing can be added here with a Select component if needed
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="editStatus" className="text-right">Status</Label>
-                 <Select value={editCourierForm.status} onValueChange={handleEditStatusChange}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Status do entregador" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Disponível">Disponível</SelectItem>
-                    <SelectItem value="Em Entrega">Em Entrega</SelectItem>
-                    <SelectItem value="Offline">Offline</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              */}
             </div>
-            <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
-                <Button type="submit">Salvar Alterações</Button>
+            <DialogFooter className="sm:justify-between">
+                <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => editingCourier && handleDeleteCourier(editingCourier.id)}
+                    className="mr-auto"
+                >
+                    <Trash2 className="mr-2 h-4 w-4" /> Excluir Entregador
+                </Button>
+                <div className="flex items-center">
+                    <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="mr-2">Cancelar</Button>
+                    <Button type="submit">Salvar Alterações</Button>
+                </div>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -303,5 +310,4 @@ export default function CouriersPage() {
     </div>
   );
 }
-
     
