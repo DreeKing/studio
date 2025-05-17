@@ -1,3 +1,5 @@
+"use client"; 
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -5,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Globe, KeyRound, Clock, Wifi, AlertTriangle, CheckCircle } from "lucide-react";
-import { useState } from "react"; // Added useState import
+import { useState } from "react";
 
 export default function SettingsPage() {
   // Placeholder state for API test results
