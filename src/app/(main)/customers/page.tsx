@@ -134,6 +134,11 @@ export default function CustomersPage() {
             description: "O cliente foi removido com sucesso do sistema.",
             className: "bg-green-500 text-white",
         });
+        // If called from edit dialog, close it and clear editing state
+        if (editingCustomer && editingCustomer.id === customerId) {
+            setIsEditDialogOpen(false);
+            setEditingCustomer(null);
+        }
     }
   };
 
@@ -232,9 +237,6 @@ export default function CustomersPage() {
                     <Button variant="ghost" size="icon" className="mr-1 hover:text-primary" onClick={() => handleOpenEditDialog(customer)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleDeleteCustomer(customer.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -281,9 +283,19 @@ export default function CustomersPage() {
                 <Input id="editCpf" name="cpf" className="col-span-3" value={editCustomerForm.cpf} onChange={handleEditInputChange} />
               </div>
             </div>
-            <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
-                <Button type="submit">Salvar Alterações</Button>
+            <DialogFooter className="sm:justify-between">
+                <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => editingCustomer && handleDeleteCustomer(editingCustomer.id)}
+                    className="mr-auto"
+                >
+                    <Trash2 className="mr-2 h-4 w-4" /> Excluir Cliente
+                </Button>
+                <div>
+                    <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="mr-2">Cancelar</Button>
+                    <Button type="submit">Salvar Alterações</Button>
+                </div>
             </DialogFooter>
           </form>
         </DialogContent>
