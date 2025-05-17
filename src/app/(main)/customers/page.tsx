@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Edit, Trash2, Search, MessageSquarePlus } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Search, MessageSquarePlus, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Customer {
@@ -149,19 +149,31 @@ export default function CustomersPage() {
     customer.address.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleExportToExcel = () => {
+    console.log("Simulando exportação para Excel dos dados de clientes...");
+    // In a real app, you would use a library like 'xlsx' or 'file-saver'
+    // For now, just show a toast.
+    toast({
+      title: "Exportação Simulada",
+      description: "Os dados dos clientes seriam exportados para Excel.",
+    });
+  };
+
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Gerenciar Clientes</h1>
         <div className="flex gap-2">
             <Button variant="outline"><MessageSquarePlus className="mr-2 h-4 w-4" /> Importar WhatsApp</Button>
+            <Button variant="outline" onClick={handleExportToExcel}><FileText className="mr-2 h-4 w-4" /> Exportar Excel</Button>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="shadow-md hover:shadow-lg transition-shadow">
                   <PlusCircle className="mr-2 h-5 w-5" /> Adicionar Cliente
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="sm:max-w-lg">
                 <form onSubmit={handleAddNewCustomer}>
                     <DialogHeader>
                     <DialogTitle>Adicionar Novo Cliente</DialogTitle>
