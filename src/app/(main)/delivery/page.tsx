@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MapPin, Truck, UserCheck, Send, Package, MessageSquare, CheckCircle, RotateCcw } from "lucide-react";
+import { MapPin, Truck, UserCheck, Send, Package, MessageSquare, CheckCircle, RotateCcw, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Delivery {
@@ -42,6 +42,7 @@ const incomingOrders = [
 export default function DeliveryPage() {
   const { toast } = useToast();
   const [deliveryList, setDeliveryList] = useState<Delivery[]>(initialDeliveries);
+  const [changingCourierForDeliveryId, setChangingCourierForDeliveryId] = useState<string | null>(null);
 
   const handleAssignCourier = (deliveryId: string, courierName: string) => {
     setDeliveryList(prevList =>
@@ -54,6 +55,20 @@ export default function DeliveryPage() {
       description: `Pedido ${deliveryId} agora está em rota com ${courierName}.`,
       className: "bg-blue-500 text-white"
     });
+  };
+
+  const handleChangeCourier = (deliveryId: string, newCourierName: string) => {
+    setDeliveryList(prevList =>
+      prevList.map(d =>
+        d.id === deliveryId ? { ...d, courier: newCourierName } : d // Status remains "Em Rota"
+      )
+    );
+    toast({
+      title: "Entregador Alterado!",
+      description: `Pedido ${deliveryId} agora está com o entregador ${newCourierName}.`,
+      className: "bg-blue-500 text-white"
+    });
+    setChangingCourierForDeliveryId(null); // Hide the select dropdown
   };
 
   const handleMarkAsDelivered = (deliveryId: string) => {
@@ -118,8 +133,8 @@ export default function DeliveryPage() {
             <CardHeader>
               <CardTitle>Pedidos para Entrega</CardTitle>
             </CardHeader>
-            <CardContent className="p-0"> {/* Removed padding and max-height here */}
-              <ScrollArea className="h-[350px] p-4 pr-6"> {/* Added specific height and padding to ScrollArea */}
+            <CardContent className="p-0"> 
+              <ScrollArea className="h-[350px] p-4 pr-6"> 
                 {deliveryList.filter(d => d.status !== "Cancelado").length > 0 ? 
                   deliveryList.filter(d => d.status !== "Cancelado").map((delivery) => (
                     <Card key={delivery.id} className="p-3 mb-3 shadow-sm">
@@ -149,10 +164,33 @@ export default function DeliveryPage() {
                               <UserCheck className="h-4 w-4 mr-2 text-primary" />
                               <span>Entregador: {delivery.courier || "N/A"}</span>
                             </div>
+
+                            {changingCourierForDeliveryId === delivery.id ? (
+                              <Select onValueChange={(newCourierName) => handleChangeCourier(delivery.id, newCourierName)}>
+                                <SelectTrigger className="mt-2">
+                                  <SelectValue placeholder="Selecionar novo entregador" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {courierOptions
+                                    .filter(c => c !== delivery.courier) // Optionally hide current courier
+                                    .map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full mt-2"
+                                onClick={() => setChangingCourierForDeliveryId(delivery.id)}
+                              >
+                                <RefreshCw className="mr-2 h-4 w-4" /> Alterar Entregador
+                              </Button>
+                            )}
+                            
                             <Button 
                               variant="default" 
                               size="sm" 
-                              className="w-full bg-green-500 hover:bg-green-600 text-white"
+                              className="w-full bg-green-500 hover:bg-green-600 text-white mt-2"
                               onClick={() => handleMarkAsDelivered(delivery.id)}
                             >
                               <CheckCircle className="mr-2 h-4 w-4" /> Marcar como Entregue
@@ -195,8 +233,8 @@ export default function DeliveryPage() {
               <CardTitle>Pedidos Recebidos</CardTitle>
               <CardDescription>iFood, Zé Delivery, WhatsApp</CardDescription>
             </CardHeader>
-            <CardContent className="p-0"> {/* Removed padding and max-height here */}
-              <ScrollArea className="h-[250px] p-4 pr-6"> {/* Added specific height and padding to ScrollArea */}
+            <CardContent className="p-0"> 
+              <ScrollArea className="h-[250px] p-4 pr-6"> 
               {incomingOrders.length > 0 ? incomingOrders.map(order => (
                 <div key={order.id} className="p-3 mb-2 border rounded-md hover:bg-secondary/50 transition-colors shadow-sm">
                   <div className="flex justify-between items-center text-sm">
@@ -222,3 +260,6 @@ export default function DeliveryPage() {
     </div>
   );
 }
+
+
+    
