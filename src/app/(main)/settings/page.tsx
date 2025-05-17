@@ -107,6 +107,8 @@ export default function SettingsPage() {
         description: "O usuário foi removido com sucesso do sistema.",
         className: "bg-green-500 text-white" // Added success styling
       });
+      setIsEditUserDialogOpen(false); // Close edit dialog if open
+      setEditingUser(null); // Clear editing state
     }
   };
 
@@ -364,9 +366,6 @@ export default function SettingsPage() {
                           <Button variant="ghost" size="icon" className="mr-1 hover:text-primary" onClick={() => handleOpenEditDialog(user)}>
                             <Edit2 className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleDeleteUser(user.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -416,9 +415,19 @@ export default function SettingsPage() {
                     </Select>
                 </div>
                 </div>
-                <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsEditUserDialogOpen(false)}>Cancelar</Button>
-                    <Button type="submit">Salvar Alterações</Button>
+                <DialogFooter className="sm:justify-between">
+                    <Button 
+                        type="button" 
+                        variant="destructive" 
+                        onClick={() => editingUser && handleDeleteUser(editingUser.id)}
+                        className="mr-auto"
+                    >
+                        <Trash2 className="mr-2 h-4 w-4" /> Excluir Usuário
+                    </Button>
+                    <div>
+                        <Button type="button" variant="outline" onClick={() => setIsEditUserDialogOpen(false)} className="mr-2">Cancelar</Button>
+                        <Button type="submit">Salvar Alterações</Button>
+                    </div>
                 </DialogFooter>
             </form>
             </DialogContent>
