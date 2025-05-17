@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Edit, Trash2, Search, MessageSquarePlus, Eye } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Search, MessageSquarePlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Customer {
@@ -289,7 +289,7 @@ export default function CustomersPage() {
                 >
                     <Trash2 className="mr-2 h-4 w-4" /> Excluir Cliente
                 </Button>
-                <div>
+                <div className="flex items-center">
                     <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="mr-2">Cancelar</Button>
                     <Button type="submit">Salvar Alterações</Button>
                 </div>
@@ -301,3 +301,4 @@ export default function CustomersPage() {
     </div>
   );
 }
+
