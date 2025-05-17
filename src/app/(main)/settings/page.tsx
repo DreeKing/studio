@@ -1,3 +1,4 @@
+
 "use client"; 
 
 import { Button } from "@/components/ui/button";
@@ -6,24 +7,94 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Globe, KeyRound, Clock, Wifi, AlertTriangle, CheckCircle } from "lucide-react";
-import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Globe, KeyRound, Clock, Wifi, AlertTriangle, CheckCircle, UserPlus, Edit2, Trash2 } from "lucide-react";
+import { useState, type FormEvent, type ChangeEvent } from "react";
+import { useToast } from "@/hooks/use-toast";
+
+interface PdvUser {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "operador";
+  // Password should not be stored in state like this in a real app
+}
+
+const defaultAddUserForm = {
+  name: "",
+  email: "",
+  password: "", // For prototype only
+  role: "operador" as PdvUser["role"],
+};
 
 export default function SettingsPage() {
-  // Placeholder state for API test results
+  const { toast } = useToast();
   const [ifoodStatus, setIfoodStatus] = useState<"untested" | "testing" | "ok" | "error">("untested");
   const [whatsappStatus, setWhatsappStatus] = useState<"untested" | "testing" | "ok" | "error">("untested");
+
+  const [usersList, setUsersList] = useState<PdvUser[]>([
+    { id: "U001", name: "Admin Principal", email: "admin@example.com", role: "admin" },
+    { id: "U002", name: "Caixa 1", email: "caixa1@example.com", role: "operador" },
+  ]);
+  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
+  const [addUserForm, setAddUserForm] = useState(defaultAddUserForm);
 
   const testApiConnection = (api: "ifood" | "whatsapp") => {
     if (api === "ifood") setIfoodStatus("testing");
     if (api === "whatsapp") setWhatsappStatus("testing");
 
-    // Simulate API call
     setTimeout(() => {
-      const success = Math.random() > 0.3; // Simulate success/failure
+      const success = Math.random() > 0.3; 
       if (api === "ifood") setIfoodStatus(success ? "ok" : "error");
       if (api === "whatsapp") setWhatsappStatus(success ? "ok" : "error");
     }, 1500);
+  };
+
+  const handleAddUserInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setAddUserForm(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleAddUserRoleChange = (value: PdvUser["role"]) => {
+    setAddUserForm(prev => ({ ...prev, role: value }));
+  };
+
+  const handleAddNewUser = (e: FormEvent) => {
+    e.preventDefault();
+    if (!addUserForm.name || !addUserForm.email || !addUserForm.password) {
+        toast({
+            variant: "destructive",
+            title: "Erro ao Adicionar Usuário",
+            description: "Por favor, preencha todos os campos obrigatórios."
+        });
+        return;
+    }
+    const newUser: PdvUser = {
+      id: `U${Date.now().toString().slice(-4)}${Math.random().toString().slice(2,4)}`,
+      name: addUserForm.name,
+      email: addUserForm.email,
+      role: addUserForm.role,
+    };
+    setUsersList(prev => [newUser, ...prev]);
+    setIsAddUserDialogOpen(false);
+    setAddUserForm(defaultAddUserForm);
+    toast({
+        title: "Usuário Adicionado!",
+        description: `O usuário ${newUser.name} foi cadastrado com sucesso.`,
+        className: "bg-green-500 text-white"
+    });
+  };
+  
+  const handleDeleteUser = (userId: string) => {
+    if (window.confirm("Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.")) {
+      setUsersList(prev => prev.filter(user => user.id !== userId));
+      toast({
+        title: "Usuário Excluído",
+        description: "O usuário foi removido do sistema.",
+      });
+    }
   };
 
 
@@ -35,7 +106,7 @@ export default function SettingsPage() {
           <TabsTrigger value="general">Geral</TabsTrigger>
           <TabsTrigger value="integrations">Integrações</TabsTrigger>
           <TabsTrigger value="operation">Operação</TabsTrigger>
-          <TabsTrigger value="users">Usuários</TabsTrigger>
+          <TabsTrigger value="users">Usuários PDV</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="mt-6">
@@ -70,7 +141,6 @@ export default function SettingsPage() {
               <CardDescription>Configure suas chaves de API e conexões.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
-              {/* iFood */}
               <div>
                 <h3 className="text-lg font-semibold mb-2 flex items-center"><Globe className="w-5 h-5 mr-2 text-red-500"/>iFood</h3>
                 <div className="space-y-3">
@@ -88,7 +158,6 @@ export default function SettingsPage() {
                 </div>
               </div>
               <hr/>
-              {/* Zé Delivery */}
               <div>
                 <h3 className="text-lg font-semibold mb-2 flex items-center"><Globe className="w-5 h-5 mr-2 text-yellow-500"/>Zé Delivery (Simulado)</h3>
                  <div className="space-y-3">
@@ -100,7 +169,6 @@ export default function SettingsPage() {
                 </div>
               </div>
               <hr/>
-              {/* WhatsApp */}
               <div>
                 <h3 className="text-lg font-semibold mb-2 flex items-center"><KeyRound className="w-5 h-5 mr-2 text-green-500"/>WhatsApp Business API</h3>
                  <div className="space-y-3">
@@ -159,20 +227,101 @@ export default function SettingsPage() {
         
         <TabsContent value="users" className="mt-6">
            <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle>Gerenciamento de Usuários</CardTitle>
-              <CardDescription>Adicione, edite ou remova usuários do sistema.</CardDescription>
+            <CardHeader className="flex flex-row justify-between items-center">
+              <div>
+                <CardTitle>Gerenciamento de Usuários PDV</CardTitle>
+                <CardDescription>Adicione, edite ou remova usuários do sistema.</CardDescription>
+              </div>
+              <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="shadow-md hover:shadow-lg transition-shadow">
+                    <UserPlus className="mr-2 h-5 w-5" /> Adicionar Usuário
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <form onSubmit={handleAddNewUser}>
+                    <DialogHeader>
+                      <DialogTitle>Adicionar Novo Usuário PDV</DialogTitle>
+                      <DialogDescription>Insira os dados do novo usuário.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="name" className="text-right">Nome</Label>
+                        <Input id="name" placeholder="Nome completo" className="col-span-3" value={addUserForm.name} onChange={handleAddUserInputChange} required/>
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="email" className="text-right">Email</Label>
+                        <Input id="email" type="email" placeholder="email@example.com" className="col-span-3" value={addUserForm.email} onChange={handleAddUserInputChange} required/>
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="password" className="text-right">Senha</Label>
+                        <Input id="password" type="password" placeholder="Senha (mín. 6 caracteres)" className="col-span-3" value={addUserForm.password} onChange={handleAddUserInputChange} required/>
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="role" className="text-right">Função</Label>
+                        <Select value={addUserForm.role} onValueChange={handleAddUserRoleChange}>
+                          <SelectTrigger id="role" className="col-span-3">
+                            <SelectValue placeholder="Selecione a função" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Administrador</SelectItem>
+                            <SelectItem value="operador">Operador de Caixa</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit">Salvar Usuário</Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Funcionalidade de gerenciamento de usuários e permissões será implementada aqui.</p>
-              {/* Placeholder for user table and actions */}
+              {usersList.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Função</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {usersList.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.id}</TableCell>
+                        <TableCell>{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell className="capitalize">{user.role}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" className="mr-1 hover:text-primary" onClick={() => alert(`Editar usuário ${user.name} (não implementado)`)}>
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleDeleteUser(user.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-muted-foreground text-center py-4">Nenhum usuário cadastrado.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
+
         <div className="mt-8 flex justify-end">
-            <Button size="lg" className="shadow-md hover:shadow-lg transition-shadow">Salvar Todas as Configurações</Button>
+            <Button size="lg" className="shadow-md hover:shadow-lg transition-shadow" onClick={() => toast({title: "Configurações Salvas!", description:"Todas as suas alterações foram salvas com sucesso.", className: "bg-green-500 text-white"})}>Salvar Todas as Configurações</Button>
         </div>
       </Tabs>
     </div>
   );
 }
+
+
+    
