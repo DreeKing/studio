@@ -1,11 +1,13 @@
+
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Search, CreditCard, DollarSign, ScanLine, MessageSquare, Package } from "lucide-react";
+import { PlusCircle, Search, CreditCard, DollarSign, ScanLine, MessageSquare, Package, Trash2 } from "lucide-react";
 import Image from "next/image";
 
 // Dummy data for products and categories
@@ -25,14 +27,15 @@ const incomingOrders = [
   { id: "WA3012", source: "WhatsApp", items: "2x Temaki Salmão", status: "Confirmar", time: "8 min atrás" },
 ];
 
+const initialOrderItems = [
+  { name: "Pizza Margherita", quantity: 1, price: 30.00 },
+  { name: "Coca-Cola 2L", quantity: 2, price: 10.00 },
+];
+
 
 export default function SalesPage() {
-  // TODO: Implement state for current order, product selection, payment, etc.
-  // For prototype, this is mostly static UI.
-  const currentOrderItems = [
-    { name: "Pizza Margherita", quantity: 1, price: 30.00 },
-    { name: "Coca-Cola 2L", quantity: 2, price: 10.00 },
-  ];
+  const [currentOrderItems, setCurrentOrderItems] = useState(initialOrderItems);
+
   const subtotal = currentOrderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const total = subtotal; // Add discounts, taxes later
 
@@ -45,6 +48,11 @@ export default function SalesPage() {
     console.log(`Total: R$ ${total.toFixed(2)}`);
     console.log("----------------");
     alert("Recibo impresso no console!");
+  };
+
+  const handleClearCart = () => {
+    setCurrentOrderItems([]);
+    // Optionally, add a toast notification here
   };
 
 
@@ -115,7 +123,22 @@ export default function SalesPage() {
               <Button size="lg" className="bg-sky-500 hover:bg-sky-600 text-white col-span-2"><ScanLine className="mr-2"/> PIX</Button>
             </div>
             <Button size="lg" variant="outline" className="w-full mt-2" onClick={handlePrintReceipt}>Imprimir Recibo</Button>
-            <Button size="lg" className="w-full mt-2">Finalizar Pedido</Button>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="w-full mt-2" 
+              onClick={handleClearCart}
+              disabled={currentOrderItems.length === 0}
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Limpar Carrinho
+            </Button>
+            <Button 
+              size="lg" 
+              className="w-full mt-2"
+              disabled={currentOrderItems.length === 0}
+            >
+              Finalizar Pedido
+            </Button>
           </CardHeader>
         </Card>
 
@@ -148,3 +171,4 @@ export default function SalesPage() {
     </div>
   );
 }
+
