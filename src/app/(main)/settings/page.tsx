@@ -65,8 +65,8 @@ export default function SettingsPage() {
   };
 
   const handleAddUserInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setAddUserForm(prev => ({ ...prev, [id]: value }));
+    const { name, value } = e.target; // Changed id to name to match input field names
+    setAddUserForm(prev => ({ ...prev, [name]: value }));
   };
 
   const handleAddUserRoleChange = (value: PdvUser["role"]) => {
@@ -103,8 +103,9 @@ export default function SettingsPage() {
     if (window.confirm("Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.")) {
       setUsersList(prev => prev.filter(user => user.id !== userId));
       toast({
-        title: "Usuário Excluído",
-        description: "O usuário foi removido do sistema.",
+        title: "Usuário Excluído!",
+        description: "O usuário foi removido com sucesso do sistema.",
+        className: "bg-green-500 text-white" // Added success styling
       });
     }
   };
@@ -121,8 +122,8 @@ export default function SettingsPage() {
   };
 
   const handleEditUserInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setEditUserForm(prev => ({ ...prev, [id]: value }));
+    const { name, value } = e.target; // Changed id to name
+    setEditUserForm(prev => ({ ...prev, [name]: value }));
   };
 
   const handleEditUserRoleChange = (value: PdvUser["role"]) => {
@@ -309,21 +310,21 @@ export default function SettingsPage() {
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="addUserName" className="text-right">Nome</Label>
+                        <Label htmlFor="name" className="text-right">Nome</Label>
                         <Input id="name" name="name" placeholder="Nome completo" className="col-span-3" value={addUserForm.name} onChange={handleAddUserInputChange} required/>
                       </div>
                       <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="addUserEmail" className="text-right">Email</Label>
+                        <Label htmlFor="email" className="text-right">Email</Label>
                         <Input id="email" name="email" type="email" placeholder="email@example.com" className="col-span-3" value={addUserForm.email} onChange={handleAddUserInputChange} required/>
                       </div>
                       <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="addUserPassword" className="text-right">Senha</Label>
+                        <Label htmlFor="password" className="text-right">Senha</Label>
                         <Input id="password" name="password" type="password" placeholder="Senha (mín. 6 caracteres)" className="col-span-3" value={addUserForm.password} onChange={handleAddUserInputChange} required/>
                       </div>
                       <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="addUserRole" className="text-right">Função</Label>
+                        <Label htmlFor="role" className="text-right">Função</Label>
                         <Select value={addUserForm.role} onValueChange={handleAddUserRoleChange}>
-                          <SelectTrigger id="addUserRole" className="col-span-3">
+                          <SelectTrigger id="role" className="col-span-3">
                             <SelectValue placeholder="Selecione a função" />
                           </SelectTrigger>
                           <SelectContent>
@@ -390,11 +391,11 @@ export default function SettingsPage() {
                 <Input type="hidden" id="editUserId" name="id" value={editUserForm.id} />
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="editUserName" className="text-right">Nome</Label>
-                    <Input id="name" name="name" placeholder="Nome completo" className="col-span-3" value={editUserForm.name} onChange={handleEditUserInputChange} required/>
+                    <Input id="editUserName" name="name" placeholder="Nome completo" className="col-span-3" value={editUserForm.name} onChange={handleEditUserInputChange} required/>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="editUserEmail" className="text-right">Email</Label>
-                    <Input id="email" name="email" type="email" placeholder="email@example.com" className="col-span-3" value={editUserForm.email} onChange={handleEditUserInputChange} required/>
+                    <Input id="editUserEmail" name="email" type="email" placeholder="email@example.com" className="col-span-3" value={editUserForm.email} onChange={handleEditUserInputChange} required/>
                 </div>
                 {/* Password field can be added if password change is desired during edit
                 <div className="grid grid-cols-4 items-center gap-4">
