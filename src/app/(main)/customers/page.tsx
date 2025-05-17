@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, Edit, Trash2, Search, MessageSquarePlus, Eye } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Customer {
   id: string;
@@ -30,11 +31,12 @@ const defaultAddCustomerForm = {
   name: "",
   phone: "",
   address: "",
-  city: "", // Will combine with address for display, can be split if needed
+  city: "",
   cpf: "",
 };
 
 export default function CustomersPage() {
+  const { toast } = useToast();
   const [customersList, setCustomersList] = useState<Customer[]>(initialCustomersData);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -66,13 +68,18 @@ export default function CustomersPage() {
       name: addCustomerForm.name,
       phone: addCustomerForm.phone,
       address: addCustomerForm.address,
-      city: addCustomerForm.city, // This field might need better handling or removal if city is part of address
+      city: addCustomerForm.city,
       cpf: addCustomerForm.cpf,
-      lastOrder: new Date().toISOString().split('T')[0], // Set lastOrder to today for new customer
+      lastOrder: new Date().toISOString().split('T')[0], 
     };
     setCustomersList(prev => [newCustomer, ...prev]);
     setIsAddDialogOpen(false);
-    setAddCustomerForm(defaultAddCustomerForm); // Reset form
+    setAddCustomerForm(defaultAddCustomerForm);
+    toast({
+      title: "Cliente Adicionado!",
+      description: `O cliente ${newCustomer.name} foi cadastrado.`,
+      className: "bg-green-500 text-white",
+    });
   };
 
   const handleOpenEditDialog = (customerToEdit: Customer) => {
@@ -89,8 +96,8 @@ export default function CustomersPage() {
   };
   
   const handleEditInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setEditCustomerForm(prev => ({ ...prev, [id]: value }));
+    const { name, value } = e.target; // Changed to name to match input elements
+    setEditCustomerForm(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSaveEditedCustomer = (e: FormEvent) => {
@@ -112,11 +119,21 @@ export default function CustomersPage() {
     );
     setIsEditDialogOpen(false);
     setEditingCustomer(null);
+    toast({
+      title: "Cliente Atualizado!",
+      description: `Os dados do cliente ${editCustomerForm.name} foram atualizados.`,
+      className: "bg-green-500 text-white",
+    });
   };
 
   const handleDeleteCustomer = (customerId: string) => {
     if (window.confirm("Tem certeza que deseja excluir este cliente?")) {
         setCustomersList(prevCustomers => prevCustomers.filter(c => c.id !== customerId));
+        toast({
+            title: "Cliente Excluído!",
+            description: "O cliente foi removido com sucesso do sistema.",
+            className: "bg-green-500 text-white",
+        });
     }
   };
 
@@ -242,7 +259,7 @@ export default function CustomersPage() {
               <DialogDescription>Modifique os dados do cliente abaixo.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <Input type="hidden" id="id" value={editCustomerForm.id} />
+              <Input type="hidden" id="id" name="id" value={editCustomerForm.id} />
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="editName" className="text-right">Nome</Label>
                 <Input id="editName" name="name" className="col-span-3" value={editCustomerForm.name} onChange={handleEditInputChange} required />
