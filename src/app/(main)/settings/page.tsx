@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Globe, KeyRound, Clock, Wifi, AlertTriangle, CheckCircle, UserPlus, Edit2, Trash2 } from "lucide-react";
+import { Globe, KeyRound, Clock, Wifi, AlertTriangle, CheckCircle, UserPlus, Edit2, Trash2, Briefcase, Mail as MailIcon } from "lucide-react";
 import { useState, type FormEvent, type ChangeEvent } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -65,7 +65,7 @@ export default function SettingsPage() {
   };
 
   const handleAddUserInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target; // Changed id to name to match input field names
+    const { name, value } = e.target; 
     setAddUserForm(prev => ({ ...prev, [name]: value }));
   };
 
@@ -105,10 +105,10 @@ export default function SettingsPage() {
       toast({
         title: "Usuário Excluído!",
         description: "O usuário foi removido com sucesso do sistema.",
-        className: "bg-green-500 text-white" // Added success styling
+        className: "bg-green-500 text-white"
       });
-      setIsEditUserDialogOpen(false); // Close edit dialog if open
-      setEditingUser(null); // Clear editing state
+      setIsEditUserDialogOpen(false); 
+      setEditingUser(null); 
     }
   };
 
@@ -124,7 +124,7 @@ export default function SettingsPage() {
   };
 
   const handleEditUserInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target; // Changed id to name
+    const { name, value } = e.target; 
     setEditUserForm(prev => ({ ...prev, [name]: value }));
   };
 
@@ -192,9 +192,25 @@ export default function SettingsPage() {
                   <Input id="storeAddress" defaultValue="Rua Fictícia, 123 - Bairro Exemplo" className="mt-1" />
                 </div>
               </div>
-              <div>
-                <Label htmlFor="storePhone">Telefone Principal</Label>
-                <Input id="storePhone" defaultValue="(00) 12345-6789" className="mt-1" />
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <Label htmlFor="storeCnpj">CNPJ da Loja</Label>
+                  <div className="relative mt-1 flex items-center">
+                     <Briefcase className="absolute left-3 h-4 w-4 text-muted-foreground" />
+                     <Input id="storeCnpj" placeholder="00.000.000/0000-00" className="pl-10" />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="storePhone">Telefone Principal</Label>
+                  <Input id="storePhone" defaultValue="(00) 12345-6789" className="mt-1" />
+                </div>
+                 <div>
+                  <Label htmlFor="storeEmail">Email da Loja</Label>
+                  <div className="relative mt-1 flex items-center">
+                    <MailIcon className="absolute left-3 h-4 w-4 text-muted-foreground" />
+                    <Input id="storeEmail" type="email" placeholder="contato@sualoja.com" className="pl-10" />
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
