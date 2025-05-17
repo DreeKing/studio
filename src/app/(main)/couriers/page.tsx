@@ -8,26 +8,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Edit, Trash2, Search, Bike } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Search, Bike, Mail } from "lucide-react";
 
 interface Courier {
   id: string;
   name: string;
   phone: string;
+  email: string;
   vehicle: string;
   plate: string;
   status: "Disponível" | "Em Entrega" | "Offline";
 }
 
 const initialCouriersData: Courier[] = [
-  { id: "E001", name: "Carlos Silva", phone: "(11) 98888-7777", vehicle: "Moto Honda CG 160", plate: "BRA2E19", status: "Disponível" },
-  { id: "E002", name: "Ana Beatriz", phone: "(21) 97777-6666", vehicle: "Bike Elétrica", plate: "N/A", status: "Em Entrega" },
-  { id: "E003", name: "Roberto Alves", phone: "(31) 96666-5555", vehicle: "Moto Yamaha Factor 150", plate: "XYZ1234", status: "Offline" },
+  { id: "E001", name: "Carlos Silva", phone: "(11) 98888-7777", email: "carlos.silva@example.com", vehicle: "Moto Honda CG 160", plate: "BRA2E19", status: "Disponível" },
+  { id: "E002", name: "Ana Beatriz", phone: "(21) 97777-6666", email: "ana.beatriz@example.com", vehicle: "Bike Elétrica", plate: "N/A", status: "Em Entrega" },
+  { id: "E003", name: "Roberto Alves", phone: "(31) 96666-5555", email: "roberto.alves@example.com", vehicle: "Moto Yamaha Factor 150", plate: "XYZ1234", status: "Offline" },
 ];
 
 const defaultAddCourierForm = {
   name: "",
   phone: "",
+  email: "",
   vehicle: "",
   plate: "",
 };
@@ -47,6 +49,7 @@ export default function CouriersPage() {
     id: "",
     name: "",
     phone: "",
+    email: "",
     vehicle: "",
     plate: "",
     status: "Disponível" as Courier["status"],
@@ -63,6 +66,7 @@ export default function CouriersPage() {
       id: `E${Date.now().toString().slice(-4)}${Math.random().toString().slice(2,4)}`,
       name: addCourierForm.name,
       phone: addCourierForm.phone,
+      email: addCourierForm.email,
       vehicle: addCourierForm.vehicle,
       plate: addCourierForm.plate || "N/A",
       status: "Disponível", // Default status for new couriers
@@ -78,6 +82,7 @@ export default function CouriersPage() {
       id: courierToEdit.id,
       name: courierToEdit.name,
       phone: courierToEdit.phone,
+      email: courierToEdit.email,
       vehicle: courierToEdit.vehicle,
       plate: courierToEdit.plate,
       status: courierToEdit.status,
@@ -105,6 +110,7 @@ export default function CouriersPage() {
               ...c,
               name: editCourierForm.name,
               phone: editCourierForm.phone,
+              email: editCourierForm.email,
               vehicle: editCourierForm.vehicle,
               plate: editCourierForm.plate || "N/A",
               // status: editCourierForm.status, // Status editing can be added here
@@ -125,6 +131,7 @@ export default function CouriersPage() {
   const filteredCouriers = couriersList.filter(courier =>
     courier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     courier.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    courier.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     courier.vehicle.toLowerCase().includes(searchTerm.toLowerCase()) ||
     courier.plate.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -147,20 +154,24 @@ export default function CouriersPage() {
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="addName" className="text-right">Nome</Label>
-                  <Input id="addName" name="name" placeholder="Nome completo" className="col-span-3" value={addCourierForm.name} onChange={handleAddInputChange} required/>
+                  <Label htmlFor="name" className="text-right">Nome</Label>
+                  <Input id="name" placeholder="Nome completo" className="col-span-3" value={addCourierForm.name} onChange={handleAddInputChange} required/>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="addPhone" className="text-right">Telefone</Label>
-                  <Input id="addPhone" name="phone" placeholder="(XX) XXXXX-XXXX" className="col-span-3" value={addCourierForm.phone} onChange={handleAddInputChange} required/>
+                  <Label htmlFor="phone" className="text-right">Telefone</Label>
+                  <Input id="phone" placeholder="(XX) XXXXX-XXXX" className="col-span-3" value={addCourierForm.phone} onChange={handleAddInputChange} required/>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="addVehicle" className="text-right">Veículo</Label>
-                  <Input id="addVehicle" name="vehicle" placeholder="Ex: Moto Honda CG 160" className="col-span-3" value={addCourierForm.vehicle} onChange={handleAddInputChange} required/>
+                  <Label htmlFor="email" className="text-right">Email</Label>
+                  <Input id="email" type="email" placeholder="email@example.com" className="col-span-3" value={addCourierForm.email} onChange={handleAddInputChange} required/>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="addPlate" className="text-right">Placa</Label>
-                  <Input id="addPlate" name="plate" placeholder="AAA0X00 (Opcional)" className="col-span-3" value={addCourierForm.plate} onChange={handleAddInputChange}/>
+                  <Label htmlFor="vehicle" className="text-right">Veículo</Label>
+                  <Input id="vehicle" placeholder="Ex: Moto Honda CG 160" className="col-span-3" value={addCourierForm.vehicle} onChange={handleAddInputChange} required/>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="plate" className="text-right">Placa</Label>
+                  <Input id="plate" placeholder="AAA0X00 (Opcional)" className="col-span-3" value={addCourierForm.plate} onChange={handleAddInputChange}/>
                 </div>
               </div>
               <DialogFooter>
@@ -189,6 +200,7 @@ export default function CouriersPage() {
                 <TableHead>ID</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Telefone</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead>Veículo</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -201,6 +213,7 @@ export default function CouriersPage() {
                   <TableCell className="font-medium">{courier.id}</TableCell>
                   <TableCell>{courier.name}</TableCell>
                   <TableCell>{courier.phone}</TableCell>
+                  <TableCell><Mail className="inline h-4 w-4 mr-1 text-muted-foreground"/>{courier.email}</TableCell>
                   <TableCell>{courier.vehicle} ({courier.plate})</TableCell>
                   <TableCell>
                      <span className={`px-2 py-1 text-xs rounded-full font-medium ${
@@ -223,7 +236,7 @@ export default function CouriersPage() {
               ))}
               {filteredCouriers.length === 0 && (
                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-4">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-4">
                         Nenhum entregador encontrado.
                     </TableCell>
                  </TableRow>
@@ -242,22 +255,26 @@ export default function CouriersPage() {
               <DialogDescription>Modifique os dados do entregador abaixo.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <Input type="hidden" id="editId" name="id" value={editCourierForm.id} />
+              <Input type="hidden" id="id" value={editCourierForm.id} />
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="editName" className="text-right">Nome</Label>
-                <Input id="editName" name="name" className="col-span-3" value={editCourierForm.name} onChange={handleEditInputChange} required />
+                <Label htmlFor="name" className="text-right">Nome</Label>
+                <Input id="name" className="col-span-3" value={editCourierForm.name} onChange={handleEditInputChange} required />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="editPhone" className="text-right">Telefone</Label>
-                <Input id="editPhone" name="phone" className="col-span-3" value={editCourierForm.phone} onChange={handleEditInputChange} required/>
+                <Label htmlFor="phone" className="text-right">Telefone</Label>
+                <Input id="phone" className="col-span-3" value={editCourierForm.phone} onChange={handleEditInputChange} required/>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="editVehicle" className="text-right">Veículo</Label>
-                <Input id="editVehicle" name="vehicle" className="col-span-3" value={editCourierForm.vehicle} onChange={handleEditInputChange} required/>
+                <Label htmlFor="email" className="text-right">Email</Label>
+                <Input id="email" type="email" className="col-span-3" value={editCourierForm.email} onChange={handleEditInputChange} required/>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="editPlate" className="text-right">Placa</Label>
-                <Input id="editPlate" name="plate" className="col-span-3" value={editCourierForm.plate} onChange={handleEditInputChange} />
+                <Label htmlFor="vehicle" className="text-right">Veículo</Label>
+                <Input id="vehicle" className="col-span-3" value={editCourierForm.vehicle} onChange={handleEditInputChange} required/>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="plate" className="text-right">Placa</Label>
+                <Input id="plate" className="col-span-3" value={editCourierForm.plate} onChange={handleEditInputChange} />
               </div>
               {/* Status editing can be added here with a Select component if needed
               <div className="grid grid-cols-4 items-center gap-4">
@@ -286,6 +303,5 @@ export default function CouriersPage() {
     </div>
   );
 }
-
 
     
