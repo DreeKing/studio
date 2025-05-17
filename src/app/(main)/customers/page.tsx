@@ -231,9 +231,6 @@ export default function CustomersPage() {
                   <TableCell>{customer.cpf || "N/A"}</TableCell>
                   <TableCell>{customer.lastOrder || "N/A"}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="mr-1 hover:text-primary">
-                      <Eye className="h-4 w-4" />
-                    </Button>
                     <Button variant="ghost" size="icon" className="mr-1 hover:text-primary" onClick={() => handleOpenEditDialog(customer)}>
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -304,5 +301,3 @@ export default function CustomersPage() {
     </div>
   );
 }
-
-    
