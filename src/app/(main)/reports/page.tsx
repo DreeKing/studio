@@ -1,10 +1,11 @@
-"use client"; // Added because Recharts components are used directly
+
+"use client"; 
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, FileText } from "lucide-react"; // Removed BarChart, LineChart, PieChart as Recharts components are used directly
+import { Download, FileText } from "lucide-react"; 
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
 import { Bar as RechartsBar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Pie as RechartsPie, PieChart as RechartsPieChart, Cell, Line as RechartsLine, LineChart as RechartsLineChart } from "recharts";
 
