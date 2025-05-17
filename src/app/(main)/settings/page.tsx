@@ -29,6 +29,13 @@ const defaultAddUserForm = {
   role: "operador" as PdvUser["role"],
 };
 
+const defaultEditUserForm = {
+  id: "",
+  name: "",
+  email: "",
+  role: "operador" as PdvUser["role"],
+};
+
 export default function SettingsPage() {
   const { toast } = useToast();
   const [ifoodStatus, setIfoodStatus] = useState<"untested" | "testing" | "ok" | "error">("untested");
@@ -40,6 +47,11 @@ export default function SettingsPage() {
   ]);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [addUserForm, setAddUserForm] = useState(defaultAddUserForm);
+
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<PdvUser | null>(null);
+  const [editUserForm, setEditUserForm] = useState(defaultEditUserForm);
+
 
   const testApiConnection = (api: "ifood" | "whatsapp") => {
     if (api === "ifood") setIfoodStatus("testing");
@@ -95,6 +107,57 @@ export default function SettingsPage() {
         description: "O usuário foi removido do sistema.",
       });
     }
+  };
+
+  const handleOpenEditDialog = (userToEdit: PdvUser) => {
+    setEditingUser(userToEdit);
+    setEditUserForm({
+      id: userToEdit.id,
+      name: userToEdit.name,
+      email: userToEdit.email,
+      role: userToEdit.role,
+    });
+    setIsEditUserDialogOpen(true);
+  };
+
+  const handleEditUserInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setEditUserForm(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleEditUserRoleChange = (value: PdvUser["role"]) => {
+    setEditUserForm(prev => ({ ...prev, role: value }));
+  };
+
+  const handleSaveEditedUser = (e: FormEvent) => {
+    e.preventDefault();
+    if (!editingUser || !editUserForm.name || !editUserForm.email) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao Editar Usuário",
+        description: "Nome e email são obrigatórios.",
+      });
+      return;
+    }
+    setUsersList(prevUsers =>
+      prevUsers.map(user =>
+        user.id === editingUser.id
+          ? {
+              ...user,
+              name: editUserForm.name,
+              email: editUserForm.email,
+              role: editUserForm.role,
+            }
+          : user
+      )
+    );
+    setIsEditUserDialogOpen(false);
+    setEditingUser(null);
+    toast({
+      title: "Usuário Atualizado!",
+      description: `Os dados do usuário ${editUserForm.name} foram atualizados.`,
+      className: "bg-green-500 text-white"
+    });
   };
 
 
@@ -246,21 +309,21 @@ export default function SettingsPage() {
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="name" className="text-right">Nome</Label>
-                        <Input id="name" placeholder="Nome completo" className="col-span-3" value={addUserForm.name} onChange={handleAddUserInputChange} required/>
+                        <Label htmlFor="addUserName" className="text-right">Nome</Label>
+                        <Input id="name" name="name" placeholder="Nome completo" className="col-span-3" value={addUserForm.name} onChange={handleAddUserInputChange} required/>
                       </div>
                       <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="email" className="text-right">Email</Label>
-                        <Input id="email" type="email" placeholder="email@example.com" className="col-span-3" value={addUserForm.email} onChange={handleAddUserInputChange} required/>
+                        <Label htmlFor="addUserEmail" className="text-right">Email</Label>
+                        <Input id="email" name="email" type="email" placeholder="email@example.com" className="col-span-3" value={addUserForm.email} onChange={handleAddUserInputChange} required/>
                       </div>
                       <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="password" className="text-right">Senha</Label>
-                        <Input id="password" type="password" placeholder="Senha (mín. 6 caracteres)" className="col-span-3" value={addUserForm.password} onChange={handleAddUserInputChange} required/>
+                        <Label htmlFor="addUserPassword" className="text-right">Senha</Label>
+                        <Input id="password" name="password" type="password" placeholder="Senha (mín. 6 caracteres)" className="col-span-3" value={addUserForm.password} onChange={handleAddUserInputChange} required/>
                       </div>
                       <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="role" className="text-right">Função</Label>
+                        <Label htmlFor="addUserRole" className="text-right">Função</Label>
                         <Select value={addUserForm.role} onValueChange={handleAddUserRoleChange}>
-                          <SelectTrigger id="role" className="col-span-3">
+                          <SelectTrigger id="addUserRole" className="col-span-3">
                             <SelectValue placeholder="Selecione a função" />
                           </SelectTrigger>
                           <SelectContent>
@@ -297,7 +360,7 @@ export default function SettingsPage() {
                         <TableCell>{user.email}</TableCell>
                         <TableCell className="capitalize">{user.role}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" className="mr-1 hover:text-primary" onClick={() => alert(`Editar usuário ${user.name} (não implementado)`)}>
+                          <Button variant="ghost" size="icon" className="mr-1 hover:text-primary" onClick={() => handleOpenEditDialog(user)}>
                             <Edit2 className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleDeleteUser(user.id)}>
@@ -315,6 +378,52 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
+        {/* Edit User Dialog */}
+        <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+            <form onSubmit={handleSaveEditedUser}>
+                <DialogHeader>
+                <DialogTitle>Editar Usuário PDV</DialogTitle>
+                <DialogDescription>Modifique os dados do usuário abaixo. Deixe a senha em branco para não alterá-la.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                <Input type="hidden" id="editUserId" name="id" value={editUserForm.id} />
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="editUserName" className="text-right">Nome</Label>
+                    <Input id="name" name="name" placeholder="Nome completo" className="col-span-3" value={editUserForm.name} onChange={handleEditUserInputChange} required/>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="editUserEmail" className="text-right">Email</Label>
+                    <Input id="email" name="email" type="email" placeholder="email@example.com" className="col-span-3" value={editUserForm.email} onChange={handleEditUserInputChange} required/>
+                </div>
+                {/* Password field can be added if password change is desired during edit
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="editUserPassword" className="text-right">Nova Senha</Label>
+                    <Input id="editUserPassword" name="password" type="password" placeholder="Deixe em branco para não alterar" className="col-span-3" onChange={handleEditUserInputChange}/>
+                </div>
+                */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="editUserRole" className="text-right">Função</Label>
+                    <Select value={editUserForm.role} onValueChange={handleEditUserRoleChange}>
+                    <SelectTrigger id="editUserRole" className="col-span-3">
+                        <SelectValue placeholder="Selecione a função" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                        <SelectItem value="operador">Operador de Caixa</SelectItem>
+                    </SelectContent>
+                    </Select>
+                </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsEditUserDialogOpen(false)}>Cancelar</Button>
+                    <Button type="submit">Salvar Alterações</Button>
+                </DialogFooter>
+            </form>
+            </DialogContent>
+        </Dialog>
+
+
         <div className="mt-8 flex justify-end">
             <Button size="lg" className="shadow-md hover:shadow-lg transition-shadow" onClick={() => toast({title: "Configurações Salvas!", description:"Todas as suas alterações foram salvas com sucesso.", className: "bg-green-500 text-white"})}>Salvar Todas as Configurações</Button>
         </div>
@@ -323,5 +432,3 @@ export default function SettingsPage() {
   );
 }
 
-
-    
