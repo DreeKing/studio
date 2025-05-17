@@ -322,7 +322,7 @@ export default function ProductsPage() {
 
       {/* Edit Product Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[625px]">
+        <DialogContent className="sm:max-w-2xl">
           <form onSubmit={handleSaveEditedProduct}>
             <DialogHeader>
               <DialogTitle>Editar Produto</DialogTitle>

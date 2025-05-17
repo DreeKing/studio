@@ -260,7 +260,7 @@ export default function CouriersPage() {
 
       {/* Edit Courier Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-lg">
           <form onSubmit={handleSaveEditedCourier}>
             <DialogHeader>
               <DialogTitle>Editar Entregador</DialogTitle>

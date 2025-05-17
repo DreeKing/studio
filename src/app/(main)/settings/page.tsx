@@ -396,7 +396,7 @@ export default function SettingsPage() {
 
         {/* Edit User Dialog */}
         <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-lg">
             <form onSubmit={handleSaveEditedUser}>
                 <DialogHeader>
                 <DialogTitle>Editar Usuário PDV</DialogTitle>

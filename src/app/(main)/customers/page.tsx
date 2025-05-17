@@ -251,7 +251,7 @@ export default function CustomersPage() {
 
       {/* Edit Customer Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-lg">
           <form onSubmit={handleSaveEditedCustomer}>
             <DialogHeader>
               <DialogTitle>Editar Cliente</DialogTitle>
