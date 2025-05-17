@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,10 +11,10 @@ import { PlusCircle, Edit, Trash2, Search, UploadCloud, DownloadCloud } from "lu
 import Image from "next/image";
 
 const products = [
-  { id: "P001", name: "Pizza Margherita", category: "Pizzas", price: "R$ 30,00", stock: 50, active: true, image: "https://placehold.co/40x40.png", "data-ai-hint": "pizza food" },
-  { id: "P002", name: "Coca-Cola 2L", category: "Bebidas", price: "R$ 10,00", stock: 120, active: true, image: "https://placehold.co/40x40.png", "data-ai-hint":"soda drink" },
-  { id: "P003", name: "Brownie de Chocolate", category: "Sobremesas", price: "R$ 12,50", stock: 30, active: false, image: "https://placehold.co/40x40.png", "data-ai-hint":"dessert food"},
-  { id: "P004", name: "Água Mineral 500ml", category: "Bebidas", price: "R$ 3,00", stock: 0, active: false, image: "https://placehold.co/40x40.png", "data-ai-hint":"water bottle" },
+  { id: "P001", name: "Pizza Margherita", category: "Pizzas", price: "R$ 30,00", stock: 50, active: true, image: "https://placehold.co/40x40.png", "data-ai-hint": "pizza food", ean: "7891234567890" },
+  { id: "P002", name: "Coca-Cola 2L", category: "Bebidas", price: "R$ 10,00", stock: 120, active: true, image: "https://placehold.co/40x40.png", "data-ai-hint":"soda drink", ean: "7890987654321" },
+  { id: "P003", name: "Brownie de Chocolate", category: "Sobremesas", price: "R$ 12,50", stock: 30, active: false, image: "https://placehold.co/40x40.png", "data-ai-hint":"dessert food", ean: "7891122334455" },
+  { id: "P004", name: "Água Mineral 500ml", category: "Bebidas", price: "R$ 3,00", stock: 0, active: false, image: "https://placehold.co/40x40.png", "data-ai-hint":"water bottle", ean: "7895566778899" },
 ];
 
 export default function ProductsPage() {
@@ -36,6 +37,10 @@ export default function ProductsPage() {
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">Nome</Label>
                 <Input id="name" placeholder="Ex: Pizza Calabresa" className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="ean" className="text-right">EAN</Label>
+                <Input id="ean" placeholder="Código de barras do produto" className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="category" className="text-right">Categoria</Label>
@@ -86,6 +91,7 @@ export default function ProductsPage() {
                 <TableHead className="w-[80px]">Imagem</TableHead>
                 <TableHead>ID</TableHead>
                 <TableHead>Nome</TableHead>
+                <TableHead>EAN</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Preço</TableHead>
                 <TableHead className="text-center">Estoque</TableHead>
@@ -101,6 +107,7 @@ export default function ProductsPage() {
                   </TableCell>
                   <TableCell className="font-medium">{product.id}</TableCell>
                   <TableCell>{product.name}</TableCell>
+                  <TableCell>{product.ean}</TableCell>
                   <TableCell>{product.category}</TableCell>
                   <TableCell>{product.price}</TableCell>
                   <TableCell className={`text-center font-semibold ${product.stock === 0 ? 'text-destructive' : product.stock < 10 ? 'text-yellow-600' : ''}`}>
