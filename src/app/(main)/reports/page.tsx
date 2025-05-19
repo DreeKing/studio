@@ -1,4 +1,5 @@
 
+
 "use client"; 
 
 import { Button } from "@/components/ui/button";
@@ -11,10 +12,10 @@ import { Bar as RechartsBar, BarChart as RechartsBarChart, CartesianGrid, XAxis,
 
 // Dummy data for charts
 const salesByChannelData = [
-  { name: 'Balcão', value: 4000, fill: "hsl(var(--chart-1))" },
-  { name: 'iFood', value: 3000, fill: "hsl(var(--chart-2))" },
-  { name: 'Zé Delivery', value: 2000, fill: "hsl(var(--chart-3))" },
-  { name: 'WhatsApp', value: 2780, fill: "hsl(var(--chart-4))" },
+  { name: 'Balcão', value: 4000, fill: "var(--color-balcao)" }, // Updated fill
+  { name: 'iFood', value: 3000, fill: "var(--color-ifood)" }, // Updated fill
+  { name: 'Zé Delivery', value: 2000, fill: "var(--color-ze)" }, // Updated fill
+  { name: 'WhatsApp', value: 2780, fill: "var(--color-whatsapp)" }, // Updated fill
 ];
 
 const topProductsData = [
@@ -33,11 +34,11 @@ const salesOverTimeData = [
 ];
 
 const salesByPaymentTypeData = [
-  { name: 'Dinheiro', value: 2500, fill: "hsl(var(--chart-1))" },
-  { name: 'Cartão', value: 3200, fill: "hsl(var(--chart-2))" },
-  { name: 'PIX', value: 1800, fill: "hsl(var(--chart-3))" },
-  { name: 'Zé Online', value: 900, fill: "hsl(var(--chart-4))" },
-  { name: 'iFood Online', value: 1200, fill: "hsl(var(--chart-5))" },
+  { name: 'Dinheiro', value: 2500, fill: "var(--color-dinheiro)" },
+  { name: 'Cartão', value: 3200, fill: "var(--color-cartao)" },
+  { name: 'PIX', value: 1800, fill: "var(--color-pix)" },
+  { name: 'Zé Online', value: 900, fill: "var(--color-zeOnline)" },
+  { name: 'iFood Online', value: 1200, fill: "var(--color-ifoodOnline)" },
 ];
 
 const chartConfig = {
@@ -47,15 +48,16 @@ const chartConfig = {
   ifood: { label: "iFood", color: "hsl(var(--chart-2))" },
   ze: { label: "Zé Delivery", color: "hsl(var(--chart-3))" },
   whatsapp: { label: "WhatsApp", color: "hsl(var(--chart-4))" },
-  dinheiro: { label: "Dinheiro", color: "hsl(var(--chart-1))" },
-  cartao: { label: "Cartão", color: "hsl(var(--chart-2))" },
-  pix: { label: "PIX", color: "hsl(var(--chart-3))" },
-  zeOnline: { label: "Zé Online", color: "hsl(var(--chart-4))" },
-  ifoodOnline: { label: "iFood Online", color: "hsl(var(--chart-5))" },
+  // Color definitions based on user request
+  dinheiro: { label: "Dinheiro", color: "hsl(220, 70%, 60%)" }, // Azul
+  cartao: { label: "Cartão", color: "hsl(30, 100%, 50%)" },   // Laranja
+  pix: { label: "PIX", color: "hsl(120, 70%, 50%)" },      // Verde
+  zeOnline: { label: "Zé Online", color: "hsl(60, 100%, 50%)" },// Amarelo
+  ifoodOnline: { label: "iFood Online", color: "hsl(0, 90%, 60%)" }, // Vermelho
 } satisfies ChartConfig;
 
 
-const COLORS = [
+const COLORS = [ // This constant might not be used if fill is directly from data or config
     "hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"
 ];
 
@@ -123,7 +125,7 @@ export default function ReportsPage() {
                                 <Cell key={`cell-product-${index}`} fill={entry.fill} />
                             ))}
                         </RechartsBar>
-                         <ChartLegend content={<ChartLegendContent />} />
+                         {/* <ChartLegend content={<ChartLegendContent />} /> No need for legend for vertical bar chart typically */}
                     </RechartsBarChart>
                 </ResponsiveContainer>
             </ChartContainer>
