@@ -9,7 +9,7 @@ import type { ChartConfig } from "@/components/ui/chart";
 const dailySalesData = [
   { channel: "Balcão", sales: 1250.75, fill: "var(--color-counter)" },
   { channel: "iFood", sales: 875.50, fill: "var(--color-ifood)" },
-  { channel: "Zé Delivery", sales: 450.20, fill: "var(--color-ze)" },
+  { channel: "Zé Delivery", sales: 450.20, fill: "var(--color-ze_delivery)" },
   { channel: "WhatsApp", sales: 620.00, fill: "var(--color-whatsapp)" },
 ];
 
@@ -17,21 +17,21 @@ const chartConfig = {
   sales: {
     label: "Vendas (R$)",
   },
-  counter: {
+  counter: { // Balcão
     label: "Balcão",
-    color: "hsl(var(--chart-1))",
+    color: "hsl(191, 65%, 25%)", // #15616F
   },
   ifood: {
     label: "iFood",
-    color: "hsl(var(--chart-2))",
+    color: "hsl(356, 83%, 51%)", // #EA1D2C
   },
-  ze: {
+  ze_delivery: { // Changed from 'ze' to 'ze_delivery' to match reports page if needed, or keep 'ze' if preferred for brevity
     label: "Zé Delivery",
-    color: "hsl(var(--chart-3))",
+    color: "hsl(48, 100%, 50%)", // #FFCC00
   },
   whatsapp: {
     label: "WhatsApp",
-    color: "hsl(var(--chart-4))",
+    color: "hsl(145, 70%, 49%)", // #25D366
   },
 } satisfies ChartConfig;
 
@@ -59,7 +59,8 @@ export function SalesByChannelChart() {
                   formatter={(value: number) => `R$${value.toFixed(2)}`}
                 />
               </Bar>
-              <ChartLegend content={<ChartLegendContent />} />
+              {/* A legenda pode ser desnecessária aqui já que as cores estão no XAxis ou na barra com LabelList */}
+              {/* <ChartLegend content={<ChartLegendContent />} /> */}
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>
