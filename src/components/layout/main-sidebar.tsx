@@ -64,7 +64,11 @@ export function MainSidebar() {
             <SidebarMenuItem key={item.href}>
               <Link href={item.href} legacyBehavior passHref>
                 <SidebarMenuButton
-                  isActive={pathname === item.href || (item.href !== "/dashboard" && item.href !== "/cash-register/open" && pathname.startsWith(item.href) || (item.href === "/cash-register/open" && pathname.startsWith("/cash-register")))}
+                  isActive={
+                    (item.href === "/cash-register/open") 
+                      ? pathname.startsWith("/cash-register") 
+                      : (pathname === item.href || pathname.startsWith(item.href + '/'))
+                  }
                   tooltip={{ children: item.label, side: "right", className:"bg-card text-card-foreground border-border shadow-md" }}
                   className="justify-start"
                 >
