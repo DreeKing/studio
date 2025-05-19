@@ -10,8 +10,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { MapPin, Truck, UserCheck, Send, Package, MessageSquare, CheckCircle, RotateCcw, RefreshCw, DollarSign, CreditCard, ScanLine, AlertCircle } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { MapPin, Truck, UserCheck, Send, Package, MessageSquare, CheckCircle, RotateCcw, RefreshCw, DollarSign, CreditCard, ScanLine, AlertCircle, PlusCircle, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Delivery {
@@ -31,6 +31,11 @@ interface CashRegisterState {
   initialOpeningAmount: number | null;
   currentBalance: number | null;
   openingTimestamp: string | null;
+}
+
+interface DialogPartialPayment {
+  method: string;
+  amount: number;
 }
 
 
@@ -60,12 +65,15 @@ export default function DeliveryPage() {
   // State for Payment Dialog
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedDeliveryForPayment, setSelectedDeliveryForPayment] = useState<Delivery | null>(null);
-  const [paymentDialogAmountString, setPaymentDialogAmountString] = useState("");
-  const [paymentDialogSelectedMethod, setPaymentDialogSelectedMethod] = useState<"Dinheiro" | "Cartão" | "PIX">("Dinheiro");
   
-  const calculatedChange = selectedDeliveryForPayment && parseFloat(paymentDialogAmountString) > selectedDeliveryForPayment.totalAmount
-    ? parseFloat(paymentDialogAmountString) - selectedDeliveryForPayment.totalAmount
-    : 0;
+  // State for multi-payment within the dialog
+  const [dialogPartialPayments, setDialogPartialPayments] = useState<DialogPartialPayment[]>([]);
+  const [dialogPaymentEntryAmountString, setDialogPaymentEntryAmountString] = useState("");
+
+  const totalPaidInDialog = dialogPartialPayments.reduce((sum, p) => sum + p.amount, 0);
+  const deliveryTotalAmount = selectedDeliveryForPayment?.totalAmount || 0;
+  const dialogRemainingOrChange = deliveryTotalAmount - totalPaidInDialog;
+
 
   const handleAssignCourier = (deliveryId: string, courierName: string) => {
     setDeliveryList(prevList =>
@@ -107,7 +115,7 @@ export default function DeliveryPage() {
   
   const handleReopenDelivery = (deliveryId: string) => {
     setDeliveryList(prevList =>
-      prevList.map(d => (d.id === deliveryId ? { ...d, status: "Aguardando Entregador", courier: null } : d))
+      prevList.map(d => (d.id === deliveryId ? { ...d, status: "Aguardando Entregador", courier: null, paymentsReceived: [] } : d))
     );
      toast({
       title: "Pedido Reaberto!",
@@ -117,65 +125,106 @@ export default function DeliveryPage() {
 
   const handleOpenPaymentDialog = (delivery: Delivery) => {
     setSelectedDeliveryForPayment(delivery);
-    setPaymentDialogAmountString(delivery.totalAmount.toFixed(2));
-    setPaymentDialogSelectedMethod("Dinheiro");
+    setDialogPartialPayments([]);
+    setDialogPaymentEntryAmountString("");
     setIsPaymentDialogOpen(true);
+  };
+
+  const handleAddDialogPaymentPart = (method: "Dinheiro" | "Cartão" | "PIX") => {
+    const amount = parseFloat(dialogPaymentEntryAmountString);
+    if (isNaN(amount) || amount <= 0) {
+      toast({ variant: "destructive", title: "Valor Inválido", description: "Insira um valor positivo para adicionar ao pagamento." });
+      return;
+    }
+    setDialogPartialPayments(prev => [...prev, { method, amount }]);
+    setDialogPaymentEntryAmountString("");
+    toast({ title: "Pagamento Adicionado", description: `${method} de R$ ${amount.toFixed(2)} adicionado à lista.`, className: "bg-blue-500 text-white" });
+  };
+
+  const handleRemoveDialogPaymentPart = (index: number) => {
+    const paymentToRemove = dialogPartialPayments[index];
+    setDialogPartialPayments(prev => prev.filter((_, i) => i !== index));
+    toast({ title: "Parte do Pagamento Removida", description: `${paymentToRemove.method} de R$ ${paymentToRemove.amount.toFixed(2)} removido.`, variant: "destructive"});
   };
 
   const handleConfirmPaymentAndDeliver = () => {
     if (!selectedDeliveryForPayment) return;
 
-    const receivedAmount = parseFloat(paymentDialogAmountString);
-    if (isNaN(receivedAmount) || receivedAmount < selectedDeliveryForPayment.totalAmount) {
+    if (totalPaidInDialog < selectedDeliveryForPayment.totalAmount) {
       toast({
         variant: "destructive",
         title: "Pagamento Insuficiente",
-        description: `O valor recebido (R$ ${receivedAmount.toFixed(2)}) é menor que o total do pedido (R$ ${selectedDeliveryForPayment.totalAmount.toFixed(2)}).`,
+        description: `O valor total pago (R$ ${totalPaidInDialog.toFixed(2)}) é menor que o total do pedido (R$ ${selectedDeliveryForPayment.totalAmount.toFixed(2)}).`,
       });
       return;
     }
 
-    // Update Cash Register if payment is Dinheiro (or any method that affects physical cash)
-    if (paymentDialogSelectedMethod === "Dinheiro") {
+    let totalCashPaymentForRegister = 0;
+    dialogPartialPayments.forEach(payment => {
+        if (payment.method === "Dinheiro") {
+            totalCashPaymentForRegister += payment.amount;
+        }
+    });
+    
+    // Only add the actual amount of the order to cash register if paid in cash, not overpayment/change
+    const cashAmountToRegister = Math.min(totalCashPaymentForRegister, selectedDeliveryForPayment.totalAmount);
+
+
+    if (totalCashPaymentForRegister > 0) {
       try {
         const storedState = localStorage.getItem('cashRegisterStatus_v2');
         if (storedState) {
           const parsedState: CashRegisterState = JSON.parse(storedState);
           if (parsedState.isOpen && parsedState.currentBalance !== null) {
-            parsedState.currentBalance += selectedDeliveryForPayment.totalAmount; // Add order total
-            localStorage.setItem('cashRegisterStatus_v2', JSON.stringify(parsedState));
-            toast({
-              title: "Saldo do Caixa Atualizado",
-              description: `Pagamento de entrega (R$ ${selectedDeliveryForPayment.totalAmount.toFixed(2)}) adicionado ao caixa.`,
-              className: "bg-blue-500 text-white" 
-            });
+            // Add only the cash portion that covers the order total to the register.
+            // If total cash paid > order total, only order total is added.
+            // If total cash paid < order total, but other methods cover the rest, add the cash paid.
+            let cashContributionToOrderTotal = 0;
+            let remainingOrderTotal = selectedDeliveryForPayment.totalAmount;
+            
+            for (const p of dialogPartialPayments) {
+                if (remainingOrderTotal <= 0) break;
+                if (p.method === "Dinheiro") {
+                    const amountApplied = Math.min(p.amount, remainingOrderTotal);
+                    cashContributionToOrderTotal += amountApplied;
+                    remainingOrderTotal -= amountApplied;
+                } else {
+                     remainingOrderTotal -= Math.min(p.amount, remainingOrderTotal);
+                }
+            }
+            
+            if (cashContributionToOrderTotal > 0) {
+                 parsedState.currentBalance += cashContributionToOrderTotal;
+                 localStorage.setItem('cashRegisterStatus_v2', JSON.stringify(parsedState));
+                toast({
+                title: "Saldo do Caixa Atualizado",
+                description: `Pagamento em dinheiro (R$ ${cashContributionToOrderTotal.toFixed(2)}) da entrega adicionado ao caixa.`,
+                className: "bg-blue-500 text-white" 
+                });
+            }
           }
         }
       } catch (error) {
         console.error("Failed to update cash register balance:", error);
-        // Non-critical, proceed with delivery confirmation
       }
     }
     
-    const paymentMade = {
-        method: paymentDialogSelectedMethod,
-        amount: receivedAmount, // Storing actual received amount
-    };
-
     setDeliveryList(prevList =>
       prevList.map(d =>
         d.id === selectedDeliveryForPayment.id
-          ? { ...d, status: "Entregue", paymentsReceived: [paymentMade] } // Store payment
+          ? { ...d, status: "Entregue", paymentsReceived: [...dialogPartialPayments] }
           : d
       )
     );
 
     toast({
       title: "Pagamento Registrado e Entrega Confirmada!",
-      description: `Pedido ${selectedDeliveryForPayment.orderId} pago com ${paymentDialogSelectedMethod} (R$ ${receivedAmount.toFixed(2)}) e marcado como entregue.`,
+      description: `Pedido ${selectedDeliveryForPayment.orderId} pago (Total: R$ ${totalPaidInDialog.toFixed(2)}) e marcado como entregue.`,
       className: "bg-green-500 text-white"
     });
     setIsPaymentDialogOpen(false);
+    setDialogPartialPayments([]);
+    setDialogPaymentEntryAmountString("");
   };
 
 
@@ -302,14 +351,17 @@ export default function DeliveryPage() {
                                   <span>Entregador: {delivery.courier || "N/A"}</span>
                               </div>
                               {delivery.paymentsReceived && delivery.paymentsReceived.length > 0 && (
-                                <p className="text-xs text-muted-foreground">
-                                  Pago: {delivery.paymentsReceived[0].method} (R$ {delivery.paymentsReceived[0].amount.toFixed(2)})
-                                </p>
+                                <ScrollArea className="max-h-20 text-xs text-muted-foreground border rounded-md p-1 mt-1">
+                                  Pagamentos:
+                                  {delivery.paymentsReceived.map((p, idx) => (
+                                    <div key={idx}>- {p.method}: R$ {p.amount.toFixed(2)}</div>
+                                  ))}
+                                </ScrollArea>
                               )}
                               <Button 
                                   variant="outline" 
                                   size="sm" 
-                                  className="w-full"
+                                  className="w-full mt-2"
                                   onClick={() => handleReopenDelivery(delivery.id)}
                               >
                                   <RotateCcw className="mr-2 h-4 w-4" /> Reabrir Entrega
@@ -364,8 +416,14 @@ export default function DeliveryPage() {
 
       {/* Payment Dialog */}
       {selectedDeliveryForPayment && (
-        <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-          <DialogContent className="sm:max-w-md">
+        <Dialog open={isPaymentDialogOpen} onOpenChange={(isOpen) => {
+          setIsPaymentDialogOpen(isOpen);
+          if (!isOpen) {
+            setDialogPartialPayments([]);
+            setDialogPaymentEntryAmountString("");
+          }
+        }}>
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Registrar Pagamento: Pedido {selectedDeliveryForPayment.orderId}</DialogTitle>
               <DialogDescription>
@@ -374,59 +432,90 @@ export default function DeliveryPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              
+              {/* Partial Payments List in Dialog */}
+              {dialogPartialPayments.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="font-semibold">Pagamentos Adicionados:</Label>
+                  <ScrollArea className="h-24 border rounded-md p-2">
+                    <Table className="text-xs">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="h-8 px-2">Método</TableHead>
+                          <TableHead className="h-8 px-2 text-right">Valor</TableHead>
+                          <TableHead className="h-8 px-2 text-right">Ação</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {dialogPartialPayments.map((p, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="py-1 px-2">{p.method}</TableCell>
+                            <TableCell className="py-1 px-2 text-right">R$ {p.amount.toFixed(2)}</TableCell>
+                            <TableCell className="py-1 px-2 text-right">
+                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive/80" onClick={() => handleRemoveDialogPaymentPart(index)}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                </div>
+              )}
+
+              {/* Input for new partial payment */}
               <div className="space-y-2">
-                <Label htmlFor="paymentDialogAmount">Valor Recebido (R$)</Label>
+                <Label htmlFor="dialogPaymentEntryAmount">Valor a Adicionar ao Pagamento (R$)</Label>
                 <div className="relative flex items-center">
                   <DollarSign className="absolute left-3 h-5 w-5 text-muted-foreground" />
                   <Input
-                    id="paymentDialogAmount"
+                    id="dialogPaymentEntryAmount"
                     type="number"
                     placeholder="0.00"
-                    value={paymentDialogAmountString}
-                    onChange={(e) => setPaymentDialogAmountString(e.target.value)}
-                    className="pl-10 text-xl h-14 appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none"
-                    required autoFocus min="0.01" step="0.01"
+                    value={dialogPaymentEntryAmountString}
+                    onChange={(e) => setDialogPaymentEntryAmountString(e.target.value)}
+                    className="pl-10 text-lg h-12 appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none"
+                    min="0.01" step="0.01"
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Forma de Pagamento</Label>
-                <RadioGroup 
-                  value={paymentDialogSelectedMethod} 
-                  onValueChange={(value: "Dinheiro" | "Cartão" | "PIX") => setPaymentDialogSelectedMethod(value)}
-                  className="flex gap-4"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Dinheiro" id="payDinheiro" />
-                    <Label htmlFor="payDinheiro" className="flex items-center gap-1"><DollarSign className="h-4 w-4"/>Dinheiro</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Cartão" id="payCartao" />
-                    <Label htmlFor="payCartao" className="flex items-center gap-1"><CreditCard className="h-4 w-4"/>Cartão</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="PIX" id="payPIX" />
-                    <Label htmlFor="payPIX" className="flex items-center gap-1"><ScanLine className="h-4 w-4"/>PIX</Label>
-                  </div>
-                </RadioGroup>
+
+              <div className="grid grid-cols-3 gap-2">
+                <Button onClick={() => handleAddDialogPaymentPart("Dinheiro")} disabled={!dialogPaymentEntryAmountString || parseFloat(dialogPaymentEntryAmountString) <= 0}><DollarSign className="mr-1 h-4 w-4"/>Dinheiro</Button>
+                <Button onClick={() => handleAddDialogPaymentPart("Cartão")} disabled={!dialogPaymentEntryAmountString || parseFloat(dialogPaymentEntryAmountString) <= 0}><CreditCard className="mr-1 h-4 w-4"/>Cartão</Button>
+                <Button onClick={() => handleAddDialogPaymentPart("PIX")} disabled={!dialogPaymentEntryAmountString || parseFloat(dialogPaymentEntryAmountString) <= 0}><ScanLine className="mr-1 h-4 w-4"/>PIX</Button>
               </div>
-              {calculatedChange > 0 && (
-                <div className="text-lg font-semibold text-green-600">
-                  Troco a Dar: R$ {calculatedChange.toFixed(2)}
+              
+              {/* Summary of payment status */}
+              <div className="mt-4 space-y-1">
+                <div className="flex justify-between text-sm">
+                    <span>Total do Pedido:</span>
+                    <span>R$ {deliveryTotalAmount.toFixed(2)}</span>
                 </div>
-              )}
-              {parseFloat(paymentDialogAmountString) < selectedDeliveryForPayment.totalAmount && (
-                 <div className="text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="h-4 w-4" /> Valor recebido é menor que o total do pedido.
-                 </div>
-              )}
+                <div className="flex justify-between text-sm">
+                    <span>Total Pago (nesta janela):</span>
+                    <span>R$ {totalPaidInDialog.toFixed(2)}</span>
+                </div>
+                <div className={`flex justify-between text-lg font-semibold ${dialogRemainingOrChange < 0 ? 'text-green-600' : dialogRemainingOrChange > 0 ? 'text-red-600' : 'text-foreground'}`}>
+                    <span>{dialogRemainingOrChange < 0 ? "Troco a Dar:" : dialogRemainingOrChange > 0 ? "Restante a Pagar:" : "Status:"}</span>
+                    <span>
+                        {dialogRemainingOrChange === 0 ? "Pago Integralmente" : `R$ ${Math.abs(dialogRemainingOrChange).toFixed(2)}`}
+                    </span>
+                </div>
+                 {dialogRemainingOrChange > 0 && (
+                     <div className="text-xs text-red-600 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" /> O valor pago é menor que o total do pedido.
+                     </div>
+                  )}
+              </div>
             </div>
             <DialogFooter>
               <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
               <Button 
                 type="button" 
                 onClick={handleConfirmPaymentAndDeliver}
-                disabled={parseFloat(paymentDialogAmountString) < selectedDeliveryForPayment.totalAmount || isNaN(parseFloat(paymentDialogAmountString))}
+                disabled={totalPaidInDialog < deliveryTotalAmount || dialogPartialPayments.length === 0}
               >
                 Confirmar Pagamento e Entregar
               </Button>
@@ -437,5 +526,3 @@ export default function DeliveryPage() {
     </>
   );
 }
-
-    
