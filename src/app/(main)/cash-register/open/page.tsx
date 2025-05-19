@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Landmark, DollarSign, ClipboardCheck, ArchiveX, ShoppingCart, AlertCircle, ArrowDownCircle, ArrowUpCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,6 +21,8 @@ interface CashRegisterState {
 }
 
 const LOCAL_STORAGE_KEY = 'cashRegisterStatus_v2'; // Incremented version due to structure change
+
+type SangriaType = "VALE" | "Compra" | "Pagamento";
 
 export default function CashRegisterPage() {
   const router = useRouter();
@@ -39,6 +42,7 @@ export default function CashRegisterPage() {
   const [isSangriaDialogOpen, setIsSangriaDialogOpen] = useState(false);
   const [sangriaAmount, setSangriaAmount] = useState("");
   const [sangriaDescription, setSangriaDescription] = useState(""); // Optional description
+  const [sangriaType, setSangriaType] = useState<SangriaType>("Pagamento");
 
   // Reforço state
   const [isReforcoDialogOpen, setIsReforcoDialogOpen] = useState(false);
@@ -146,10 +150,11 @@ export default function CashRegisterPage() {
       return;
     }
     setRegisterState(prev => ({ ...prev, currentBalance: (prev.currentBalance || 0) - amount }));
-    toast({ title: "Sangria Registrada", description: `R$ ${amount.toFixed(2)} removidos do caixa. Descrição: ${sangriaDescription || 'N/A'}`, className: "bg-blue-500 text-white" });
+    toast({ title: "Sangria Registrada!", description: `Tipo: ${sangriaType}. Valor: R$ ${amount.toFixed(2)}. ${sangriaDescription ? `Descrição: ${sangriaDescription}` : ''}`, className: "bg-blue-500 text-white" });
     setIsSangriaDialogOpen(false);
     setSangriaAmount("");
     setSangriaDescription("");
+    setSangriaType("Pagamento"); // Reset type
   };
 
   const handleConfirmReforco = (e: FormEvent) => {
@@ -308,12 +313,12 @@ export default function CashRegisterPage() {
       </div>
 
       {/* Sangria Dialog */}
-      <Dialog open={isSangriaDialogOpen} onOpenChange={setIsSangriaDialogOpen}>
+      <Dialog open={isSangriaDialogOpen} onOpenChange={(isOpen) => { setIsSangriaDialogOpen(isOpen); if (!isOpen) { setSangriaAmount(""); setSangriaDescription(""); setSangriaType("Pagamento");} }}>
         <DialogContent className="sm:max-w-md">
           <form onSubmit={handleConfirmSangria}>
             <DialogHeader>
               <DialogTitle>Registrar Sangria</DialogTitle>
-              <DialogDescription>Informe o valor a ser retirado do caixa.</DialogDescription>
+              <DialogDescription>Informe o valor e o tipo da retirada do caixa.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
@@ -332,6 +337,19 @@ export default function CashRegisterPage() {
                 </div>
               </div>
               <div className="space-y-2">
+                <Label htmlFor="sangriaType">Tipo de Sangria</Label>
+                <Select value={sangriaType} onValueChange={(value) => setSangriaType(value as SangriaType)}>
+                  <SelectTrigger id="sangriaType" className="w-full">
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="VALE">VALE</SelectItem>
+                    <SelectItem value="Compra">Compra</SelectItem>
+                    <SelectItem value="Pagamento">Pagamento</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="sangriaDescription">Descrição (Opcional)</Label>
                 <Input id="sangriaDescription" placeholder="Ex: Pagamento de fornecedor" value={sangriaDescription} onChange={(e) => setSangriaDescription(e.target.value)} />
               </div>
@@ -345,7 +363,7 @@ export default function CashRegisterPage() {
       </Dialog>
 
       {/* Reforço Dialog */}
-      <Dialog open={isReforcoDialogOpen} onOpenChange={setIsReforcoDialogOpen}>
+      <Dialog open={isReforcoDialogOpen} onOpenChange={(isOpen) => { setIsReforcoDialogOpen(isOpen); if(!isOpen) { setReforcoAmount(""); setReforcoDescription("");} }}>
         <DialogContent className="sm:max-w-md">
           <form onSubmit={handleConfirmReforco}>
             <DialogHeader>
@@ -384,27 +402,4 @@ export default function CashRegisterPage() {
   );
 }
 
-// Simple loader component to prevent hydration issues with localStorage
-// function CustomLoader({ className }: { className?: string }) { // Renamed to avoid conflict if Loader2 is a known component
-//   return (
-//     <svg
-//       xmlns="http://www.w3.org/2000/svg"
-//       width="24"
-//       height="24"
-//       viewBox="0 0 24 24"
-//       fill="none"
-//       stroke="currentColor"
-//       strokeWidth="2"
-//       strokeLinecap="round"
-//       strokeLinejoin="round"
-//       className={className}
-//     >
-//       <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-//     </svg>
-//   );
-// }
-
-// Using existing Loader2 from lucide-react if it's preferred. Or keep the simple SVG.
-// For now, ensure Loader2 is imported if that's the intended component from lucide.
-// If Loader2 is the one from the file, its definition is fine.
-// I've used the `Loader2` import from `lucide-react` in the initial loading check.
+      
