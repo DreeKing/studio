@@ -1,14 +1,18 @@
 
-
 "use client"; 
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, FileText } from "lucide-react"; 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Download, FileText, BarChart3 } from "lucide-react"; 
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
 import { Bar as RechartsBar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Pie as RechartsPie, PieChart as RechartsPieChart, Cell, Line as RechartsLine, LineChart as RechartsLineChart } from "recharts";
+import type { DateRange } from "react-day-picker";
+import { useToast } from "@/hooks/use-toast";
 
 // Dummy data for charts
 const salesByChannelData = [
@@ -63,8 +67,41 @@ const chartConfig = {
   "Suco Laranja": { label: "Suco Laranja", color: "hsl(var(--chart-5))" },
 } satisfies ChartConfig;
 
+interface DetailedProductSale {
+  id: string;
+  name: string;
+  quantitySold: number;
+  unitPrice: number;
+  totalValue: number;
+}
+
+const detailedTopProductsData: DetailedProductSale[] = [
+  { id: "P001", name: "Coca-Cola 2L", quantitySold: 250, unitPrice: 10.00, totalValue: 2500.00 },
+  { id: "P002", name: "Água Mineral", quantitySold: 180, unitPrice: 3.00, totalValue: 540.00 },
+  { id: "P003", name: "Pizza Margherita", quantitySold: 120, unitPrice: 30.00, totalValue: 3600.00 },
+  { id: "P004", name: "X-Burger", quantitySold: 90, unitPrice: 20.00, totalValue: 1800.00 },
+  { id: "P005", name: "Suco Laranja", quantitySold: 70, unitPrice: 7.00, totalValue: 490.00 },
+  { id: "P006", name: "Brownie", quantitySold: 50, unitPrice: 12.50, totalValue: 625.00 },
+];
+
 
 export default function ReportsPage() {
+  const { toast } = useToast();
+  const [isTopProductsDialogOpen, setIsTopProductsDialogOpen] = useState(false);
+  const [topProductsDateRange, setTopProductsDateRange] = useState<DateRange | undefined>({
+    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // Start of current month
+    to: new Date(), // Today
+  });
+
+  const handleExportTopProductsXLS = () => {
+    console.log("Simulando exportação da lista detalhada de produtos para XLS...");
+    toast({
+      title: "Exportação Simulada",
+      description: "A lista detalhada de produtos seria exportada para Excel.",
+      className: "bg-green-500 text-white",
+    });
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -110,17 +147,17 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-lg">
+        <Card className="shadow-lg flex flex-col">
           <CardHeader>
             <CardTitle>Produtos Mais Vendidos</CardTitle>
             <CardDescription>Ranking dos produtos por volume de vendas.</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[300px] flex-grow">
              <ChartContainer config={chartConfig} className="w-full h-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <RechartsBarChart data={topProductsData} layout="vertical" margin={{ left: 20, right: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                        <XAxis type="number" />
+                        <XAxis type="number" dataKey="sales" />
                         <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} width={100} />
                         <ChartTooltip content={<ChartTooltipContent />} cursor={false} />
                         <RechartsBar dataKey="sales" radius={4}>
@@ -132,6 +169,11 @@ export default function ReportsPage() {
                 </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
+          <CardFooter className="justify-center border-t pt-4">
+            <Button variant="link" onClick={() => setIsTopProductsDialogOpen(true)}>
+              <BarChart3 className="mr-2 h-4 w-4" /> Ver mais detalhes
+            </Button>
+          </CardFooter>
         </Card>
 
         <Card className="shadow-lg">
@@ -177,8 +219,73 @@ export default function ReportsPage() {
             </ChartContainer>
         </CardContent>
       </Card>
+
+      {/* Dialog for Top Selling Products Details */}
+      <Dialog open={isTopProductsDialogOpen} onOpenChange={setIsTopProductsDialogOpen}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Detalhes dos Produtos Mais Vendidos</DialogTitle>
+            <DialogDescription>
+              Visualize a lista detalhada de produtos vendidos. Use o filtro de data para refinar a busca (simulado).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 flex-grow overflow-y-auto pr-2 space-y-4">
+            <div className="mb-4">
+              <Label htmlFor="topProductsDateRange" className="text-sm font-medium">Filtrar por Data:</Label>
+              <DatePickerWithRange 
+                // @ts-ignore TODO: Fix DatePickerWithRange to accept DateRange | undefined and pass setter
+                // For now, this will just display. We'll need to adjust DatePickerWithRange to accept a setter
+                // or manage the date locally if we want it to be interactive in the dialog.
+                // For simplicity, I'm passing the state but not a setter.
+                // date={topProductsDateRange} 
+                // onDateChange={setTopProductsDateRange} // This prop doesn't exist on current component
+                className="mt-1" 
+              /> 
+            </div>
+            
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Produto</TableHead>
+                  <TableHead className="text-right">Qtd. Vendida</TableHead>
+                  <TableHead className="text-right">Preço Un. (R$)</TableHead>
+                  <TableHead className="text-right">Valor Total (R$)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {detailedTopProductsData.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell className="text-right">{product.quantitySold}</TableCell>
+                    <TableCell className="text-right">{product.unitPrice.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-semibold">{product.totalValue.toFixed(2)}</TableCell>
+                  </TableRow>
+                ))}
+                {detailedTopProductsData.length === 0 && (
+                   <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
+                        Nenhum produto para exibir.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter className="mt-4 pt-4 border-t sm:justify-between">
+            <Button variant="outline" onClick={handleExportTopProductsXLS}>
+              <Download className="mr-2 h-4 w-4" /> Baixar lista em XLS
+            </Button>
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Fechar
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
 
-
+    
