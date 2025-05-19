@@ -1,15 +1,16 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { PlusCircle, Search, CreditCard, DollarSign, ScanLine, Trash2, Plus, Minus, CheckCircle, Printer } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PlusCircle, Search, DollarSign, ScanLine, Trash2, Plus, Minus, CheckCircle, Printer, CreditCard } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 
@@ -32,12 +33,17 @@ interface OrderItem {
   price: number; // Price per unit
 }
 
+interface PartialPayment {
+  method: string;
+  amount: number;
+}
+
 interface ConfirmedSaleDetails {
   items: OrderItem[];
   subtotal: number;
   total: number;
-  paymentMethod: string;
-  paidAmount: number;
+  payments: PartialPayment[];
+  totalPaid: number;
   change: number;
 }
 
@@ -47,15 +53,16 @@ export default function SalesPage() {
   const { toast } = useToast();
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [amountPaidString, setAmountPaidString] = useState("");
+  const [partialPaymentsList, setPartialPaymentsList] = useState<PartialPayment[]>([]);
 
   const [isSaleConfirmationDialogOpen, setIsSaleConfirmationDialogOpen] = useState(false);
   const [confirmedSaleDetails, setConfirmedSaleDetails] = useState<ConfirmedSaleDetails | null>(null);
 
   const subtotal = currentOrderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const total = subtotal; // Add discounts, taxes later
+  const orderTotal = subtotal; // Add discounts, taxes later
 
-  const parsedAmountPaid = parseFloat(amountPaidString) || 0;
-  const remainingOrChange = total - parsedAmountPaid;
+  const totalPaidFromList = partialPaymentsList.reduce((sum, p) => sum + p.amount, 0);
+  const displayRemainingOrChange = orderTotal - totalPaidFromList;
 
 
   const handlePrintReceipt = (saleDetails: ConfirmedSaleDetails | null) => {
@@ -69,17 +76,19 @@ export default function SalesPage() {
     }
     console.log("--- Recibo ---");
     console.log(`Data: ${new Date().toLocaleString()}`);
-    console.log(`Método de Pagamento: ${saleDetails.paymentMethod}`);
+    console.log("Formas de Pagamento:");
+    saleDetails.payments.forEach(p => {
+      console.log(`- ${p.method}: R$ ${p.amount.toFixed(2)}`);
+    });
+    console.log("Itens:");
     saleDetails.items.forEach(item => {
       console.log(`${item.quantity}x ${item.name} - R$ ${(item.price * item.quantity).toFixed(2)}`);
     });
     console.log(`Subtotal: R$ ${saleDetails.subtotal.toFixed(2)}`);
-    console.log(`Total: R$ ${saleDetails.total.toFixed(2)}`);
-    if (saleDetails.paidAmount > 0) {
-      console.log(`Valor Pago: R$ ${saleDetails.paidAmount.toFixed(2)}`);
-      if (saleDetails.change > 0) { // Change is positive if paid > total
-        console.log(`Troco: R$ ${saleDetails.change.toFixed(2)}`);
-      }
+    console.log(`Total da Venda: R$ ${saleDetails.total.toFixed(2)}`);
+    console.log(`Total Pago: R$ ${saleDetails.totalPaid.toFixed(2)}`);
+    if (saleDetails.change > 0) {
+      console.log(`Troco: R$ ${saleDetails.change.toFixed(2)}`);
     }
     console.log("----------------");
     toast({
@@ -88,14 +97,18 @@ export default function SalesPage() {
     });
   };
 
-  const handleClearCart = () => {
+  const handleClearOrderAndPayments = () => {
     setCurrentOrderItems([]);
+    setPartialPaymentsList([]);
     setAmountPaidString("");
-    // Do not show toast here, it's part of a larger flow.
+    toast({
+        title: "Pedido Limpo",
+        description: "Todos os itens e pagamentos foram removidos.",
+    });
   };
 
   const handleNewSale = () => {
-    handleClearCart();
+    handleClearOrderAndPayments();
     setIsSaleConfirmationDialogOpen(false);
     setConfirmedSaleDetails(null);
     toast({
@@ -141,7 +154,7 @@ export default function SalesPage() {
 
     if (typeof quantityValue === 'string') {
       if (quantityValue.trim() === "") { 
-        newQuantity = 0; // Will be handled by the logic below to remove item
+        newQuantity = 0; 
       } else {
         newQuantity = parseInt(quantityValue, 10);
       }
@@ -149,14 +162,14 @@ export default function SalesPage() {
       newQuantity = quantityValue;
     }
   
-    if (isNaN(newQuantity)) { // if parsing failed
+    if (isNaN(newQuantity)) { 
       return; 
     }
   
     if (newQuantity <= 0) {
       const itemExists = currentOrderItems.some(item => item.id === itemId);
       if (itemExists) {
-          handleRemoveItem(itemId); // This already has a toast
+          handleRemoveItem(itemId); 
       }
     } else {
       setCurrentOrderItems(prevItems =>
@@ -173,7 +186,36 @@ export default function SalesPage() {
     product.category.toLowerCase().includes(productSearchTerm.toLowerCase())
   );
 
-  const handleFinalizeSale = (paymentMethod: string) => {
+  const handleAddPayment = (paymentMethod: string) => {
+    const amount = parseFloat(amountPaidString);
+    if (isNaN(amount) || amount <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Valor Inválido",
+        description: "Por favor, insira um valor de pagamento válido.",
+      });
+      return;
+    }
+    setPartialPaymentsList(prev => [...prev, { method: paymentMethod, amount }]);
+    setAmountPaidString("");
+    toast({
+      title: "Pagamento Adicionado",
+      description: `${paymentMethod} de R$ ${amount.toFixed(2)} adicionado.`,
+      className: "bg-blue-500 text-white",
+    });
+  };
+
+  const handleRemovePartialPayment = (indexToRemove: number) => {
+    const paymentToRemove = partialPaymentsList[indexToRemove];
+    setPartialPaymentsList(prev => prev.filter((_, index) => index !== indexToRemove));
+    toast({
+        title: "Pagamento Removido",
+        description: `${paymentToRemove.method} de R$ ${paymentToRemove.amount.toFixed(2)} foi removido.`,
+        variant: "destructive",
+    });
+  };
+
+  const handleFinalizeSale = () => {
     if (currentOrderItems.length === 0) {
       toast({
         variant: "destructive",
@@ -183,22 +225,22 @@ export default function SalesPage() {
       return;
     }
 
-    if (remainingOrChange > 0) {
+    if (displayRemainingOrChange > 0) {
       toast({
         variant: "destructive",
         title: "Pagamento Insuficiente",
-        description: `Ainda faltam R$ ${remainingOrChange.toFixed(2)}. Verifique o valor pago.`,
+        description: `Ainda faltam R$ ${displayRemainingOrChange.toFixed(2)}. Verifique os pagamentos.`,
       });
       return;
     }
 
     const saleData: ConfirmedSaleDetails = {
-      items: [...currentOrderItems], // Create a copy
+      items: [...currentOrderItems],
       subtotal: subtotal,
-      total: total,
-      paymentMethod: paymentMethod,
-      paidAmount: parsedAmountPaid,
-      change: remainingOrChange < 0 ? Math.abs(remainingOrChange) : 0, // Troco is positive
+      total: orderTotal,
+      payments: [...partialPaymentsList],
+      totalPaid: totalPaidFromList,
+      change: displayRemainingOrChange < 0 ? Math.abs(displayRemainingOrChange) : 0,
     };
     setConfirmedSaleDetails(saleData);
     setIsSaleConfirmationDialogOpen(true);
@@ -295,20 +337,51 @@ export default function SalesPage() {
                 )}
               </ScrollArea>
             </CardContent>
-            <CardHeader className="border-t pt-4 space-y-4"> 
-              <div className="flex justify-between text-lg font-semibold">
-                <span>Subtotal:</span>
-                <span>R$ {subtotal.toFixed(2)}</span>
+            
+            <CardFooter className="border-t pt-4 flex flex-col gap-4"> 
+              <div className="w-full space-y-1">
+                <div className="flex justify-between text-lg font-semibold">
+                  <span>Subtotal:</span>
+                  <span>R$ {subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-xl font-bold text-primary">
+                  <span>Total a Pagar:</span>
+                  <span>R$ {orderTotal.toFixed(2)}</span>
+                </div>
               </div>
-              <div className="flex justify-between text-xl font-bold text-primary">
-                <span>Total:</span>
-                <span>R$ {total.toFixed(2)}</span>
-              </div>
-
+              
               {currentOrderItems.length > 0 && (
                 <>
-                  <div className="space-y-2">
-                    <Label htmlFor="amountPaid" className="text-base font-semibold">Valor Pago (R$)</Label>
+                  {partialPaymentsList.length > 0 && (
+                    <div className="w-full space-y-2 py-2 border-y">
+                       <Label className="text-base font-semibold">Pagamentos Realizados:</Label>
+                       <Table className="text-xs">
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="h-8 px-2">Método</TableHead>
+                              <TableHead className="h-8 px-2 text-right">Valor</TableHead>
+                              <TableHead className="h-8 px-2 text-right">Ação</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {partialPaymentsList.map((p, index) => (
+                              <TableRow key={index}>
+                                <TableCell className="py-1 px-2">{p.method}</TableCell>
+                                <TableCell className="py-1 px-2 text-right">R$ {p.amount.toFixed(2)}</TableCell>
+                                <TableCell className="py-1 px-2 text-right">
+                                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive/80" onClick={() => handleRemovePartialPayment(index)}>
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                    </div>
+                  )}
+
+                  <div className="w-full space-y-2">
+                    <Label htmlFor="amountPaid" className="text-base font-semibold">Adicionar Pagamento (R$)</Label>
                     <div className="relative flex items-center">
                       <DollarSign className="absolute left-3 h-5 w-5 text-muted-foreground" />
                       <Input
@@ -324,36 +397,40 @@ export default function SalesPage() {
                       />
                     </div>
                   </div>
-                  { total > 0 && (parsedAmountPaid > 0 || amountPaidString !== "") && ( // Show change/remaining only if amountPaid is entered
-                    <div className={`flex justify-between text-lg font-semibold ${remainingOrChange < 0 ? 'text-green-600' : remainingOrChange > 0 ? 'text-red-600' : ''}`}>
-                      <span>{remainingOrChange < 0 ? "Troco:" : "Restante:"}</span>
-                      <span>R$ {Math.abs(remainingOrChange).toFixed(2)}</span>
-                    </div>
-                  )}
+
+                  <div className={`w-full flex justify-between text-lg font-semibold ${displayRemainingOrChange < 0 ? 'text-green-600' : displayRemainingOrChange > 0 ? 'text-red-600' : 'text-foreground'}`}>
+                    <span>{displayRemainingOrChange < 0 ? "Troco:" : "Restante:"}</span>
+                    <span>R$ {Math.abs(displayRemainingOrChange).toFixed(2)}</span>
+                  </div>
+                  
+                  <div className="w-full grid grid-cols-3 gap-2">
+                    <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleAddPayment("Cartão")} disabled={currentOrderItems.length === 0 || parseFloat(amountPaidString) <=0 || isNaN(parseFloat(amountPaidString))}><CreditCard className="mr-2"/> Cartão</Button>
+                    <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleAddPayment("Dinheiro")} disabled={currentOrderItems.length === 0 || parseFloat(amountPaidString) <=0 || isNaN(parseFloat(amountPaidString))}><DollarSign className="mr-2"/> Dinheiro</Button>
+                    <Button size="lg" className="bg-sky-500 hover:bg-sky-600 text-white" onClick={() => handleAddPayment("PIX")} disabled={currentOrderItems.length === 0 || parseFloat(amountPaidString) <=0 || isNaN(parseFloat(amountPaidString))}><ScanLine className="mr-2"/> PIX</Button>
+                  </div>
                 </>
               )}
 
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleFinalizeSale("Cartão")} disabled={currentOrderItems.length === 0}><CreditCard className="mr-2"/> Cartão</Button>
-                <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleFinalizeSale("Dinheiro")} disabled={currentOrderItems.length === 0}><DollarSign className="mr-2"/> Dinheiro</Button>
-                <Button size="lg" className="bg-sky-500 hover:bg-sky-600 text-white col-span-2" onClick={() => handleFinalizeSale("PIX")} disabled={currentOrderItems.length === 0}><ScanLine className="mr-2"/> PIX</Button>
+              <div className="w-full flex flex-col gap-2 mt-2">
+                <Button 
+                    size="lg" 
+                    className="bg-primary hover:bg-primary/90"
+                    onClick={handleFinalizeSale} 
+                    disabled={currentOrderItems.length === 0 || displayRemainingOrChange > 0 || partialPaymentsList.length === 0}
+                >
+                    <CheckCircle className="mr-2 h-5 w-5"/> Finalizar Venda
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="destructive" 
+                  className="w-full" 
+                  onClick={handleClearOrderAndPayments}
+                  disabled={currentOrderItems.length === 0 && partialPaymentsList.length === 0}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" /> Limpar Pedido e Pagamentos
+                </Button>
               </div>
-              <Button 
-                size="lg" 
-                variant="destructive" 
-                className="w-full mt-2" 
-                onClick={() => {
-                  handleClearCart();
-                  toast({
-                      title: "Carrinho Limpo",
-                      description: "Todos os itens foram removidos do pedido.",
-                  });
-                }}
-                disabled={currentOrderItems.length === 0}
-              >
-                <Trash2 className="mr-2 h-4 w-4" /> Limpar Carrinho
-              </Button>
-            </CardHeader>
+            </CardFooter>
           </Card>
         </div>
       </div>
@@ -372,14 +449,21 @@ export default function SalesPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-3">
-              <p className="text-sm"><strong>Método de Pagamento:</strong> {confirmedSaleDetails.paymentMethod}</p>
               <p className="text-sm"><strong>Total da Venda:</strong> R$ {confirmedSaleDetails.total.toFixed(2)}</p>
-              {confirmedSaleDetails.paidAmount > 0 && (
-                 <p className="text-sm"><strong>Valor Pago:</strong> R$ {confirmedSaleDetails.paidAmount.toFixed(2)}</p>
-              )}
+              <p className="text-sm"><strong>Total Pago:</strong> R$ {confirmedSaleDetails.totalPaid.toFixed(2)}</p>
               {confirmedSaleDetails.change > 0 && (
                 <p className="text-sm font-semibold text-green-600"><strong>Troco:</strong> R$ {confirmedSaleDetails.change.toFixed(2)}</p>
               )}
+              <div className="pt-2">
+                <h4 className="font-medium text-sm mb-1">Pagamentos:</h4>
+                 <ScrollArea className="h-20 border rounded-md p-2">
+                    <ul className="text-xs list-disc list-inside">
+                        {confirmedSaleDetails.payments.map((p, index) => (
+                            <li key={index}>{p.method}: R$ {p.amount.toFixed(2)}</li>
+                        ))}
+                    </ul>
+                </ScrollArea>
+              </div>
               <div className="pt-2">
                 <h4 className="font-medium text-sm mb-1">Itens:</h4>
                 <ScrollArea className="h-24 border rounded-md p-2">
@@ -404,3 +488,5 @@ export default function SalesPage() {
   );
 }
 
+
+    
