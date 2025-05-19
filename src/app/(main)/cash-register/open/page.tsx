@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Landmark, DollarSign, ClipboardCheck, ArchiveX, ShoppingCart, AlertCircle, ArrowDownCircle, ArrowUpCircle, Loader2 } from "lucide-react";
+import { Landmark, DollarSign, ClipboardCheck, ArchiveX, ShoppingCart, AlertCircle, ArrowDownCircle, ArrowUpCircle, Loader2, Printer, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface CashRegisterState {
@@ -20,9 +20,35 @@ interface CashRegisterState {
   openingTimestamp: string | null;
 }
 
-const LOCAL_STORAGE_KEY = 'cashRegisterStatus_v2'; // Incremented version due to structure change
+const LOCAL_STORAGE_KEY = 'cashRegisterStatus_v2';
 
 type SangriaType = "Vale" | "Compra" | "Pagamento";
+
+interface ClosingDifferenceDetails {
+  amount: number;
+  status: "Falta no Caixa" | "Sobra no Caixa" | "Valores Conferem";
+  message: string;
+}
+
+interface ClosingSummaryData {
+  openingTimestamp: string | null;
+  closingTimestamp: string;
+  initialOpeningAmount: number | null;
+  paymentsCard: string; // Placeholder
+  paymentsCash: string; // Placeholder
+  paymentsPix: string; // Placeholder
+  paymentsZeOnline: string; // Placeholder
+  paymentsIfoodOnline: string; // Placeholder
+  totalReforco: string; // Placeholder for aggregate
+  totalSangria: string; // Placeholder for aggregate
+  discounts: string; // Placeholder
+  deliveryFees: string; // Placeholder
+  expectedSystemBalance: number | null;
+  countedPhysicalBalance: number;
+  differenceAmount: number;
+  differenceStatus: string;
+}
+
 
 export default function CashRegisterPage() {
   const router = useRouter();
@@ -41,24 +67,31 @@ export default function CashRegisterPage() {
   // Sangria state
   const [isSangriaDialogOpen, setIsSangriaDialogOpen] = useState(false);
   const [sangriaAmount, setSangriaAmount] = useState("");
-  const [sangriaDescription, setSangriaDescription] = useState(""); // Optional description
+  const [sangriaDescription, setSangriaDescription] = useState("");
   const [sangriaType, setSangriaType] = useState<SangriaType>("Pagamento");
 
   // Reforço state
   const [isReforcoDialogOpen, setIsReforcoDialogOpen] = useState(false);
   const [reforcoAmount, setReforcoAmount] = useState("");
-  const [reforcoDescription, setReforcoDescription] = useState(""); // Optional description
+  const [reforcoDescription, setReforcoDescription] = useState("");
+
+  // Closing Register Dialog States
+  const [isClosingDialogPhysicalAmountOpen, setIsClosingDialogPhysicalAmountOpen] = useState(false);
+  const [isClosingDialogConfirmDifferenceOpen, setIsClosingDialogConfirmDifferenceOpen] = useState(false);
+  const [isPrintClosingNoteDialogOpen, setIsPrintClosingNoteDialogOpen] = useState(false);
+  const [physicalAmountString, setPhysicalAmountString] = useState("");
+  const [closingDifferenceDetails, setClosingDifferenceDetails] = useState<ClosingDifferenceDetails | null>(null);
+  const [closingSummaryData, setClosingSummaryData] = useState<ClosingSummaryData | null>(null);
+
 
   useEffect(() => {
     try {
       const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedState) {
         const parsedState = JSON.parse(storedState);
-        // Ensure currentBalance exists, if not, default it from initialOpeningAmount (for migration)
         if (parsedState.isOpen && parsedState.currentBalance === undefined && parsedState.initialOpeningAmount !== undefined) {
           parsedState.currentBalance = parsedState.initialOpeningAmount;
         } else if (parsedState.isOpen && parsedState.openedAmount !== undefined && parsedState.initialOpeningAmount === undefined) {
-            // Migration from v1 (openedAmount to initialOpeningAmount & currentBalance)
             parsedState.initialOpeningAmount = parsedState.openedAmount;
             parsedState.currentBalance = parsedState.openedAmount;
             delete parsedState.openedAmount;
@@ -123,20 +156,115 @@ export default function CashRegisterPage() {
     });
   };
 
-  const handleCloseRegister = () => {
-    const closingAmount = registerState.currentBalance; 
+  const handleInitiateCloseRegister = () => {
+    setPhysicalAmountString("");
+    setClosingDifferenceDetails(null);
+    setIsClosingDialogPhysicalAmountOpen(true);
+  };
 
+  const handleProceedToConfirmDifference = (e: FormEvent) => {
+    e.preventDefault();
+    const countedAmount = parseFloat(physicalAmountString);
+    if (isNaN(countedAmount) || countedAmount < 0) {
+      toast({ variant: "destructive", title: "Valor Inválido", description: "Por favor, insira um valor contado válido." });
+      return;
+    }
+
+    const systemBalance = registerState.currentBalance || 0;
+    const difference = countedAmount - systemBalance;
+    let status: ClosingDifferenceDetails["status"];
+    let message: string;
+
+    if (difference < 0) {
+      status = "Falta no Caixa";
+      message = `Detectada uma ${status.toLowerCase()} de R$ ${Math.abs(difference).toFixed(2)}. Deseja fechar o caixa assim mesmo?`;
+    } else if (difference > 0) {
+      status = "Sobra no Caixa";
+      message = `Detectada uma ${status.toLowerCase()} de R$ ${difference.toFixed(2)}. Deseja fechar o caixa assim mesmo?`;
+    } else {
+      status = "Valores Conferem";
+      message = "Os valores conferem. Deseja fechar o caixa?";
+    }
+    setClosingDifferenceDetails({ amount: difference, status, message });
+    setIsClosingDialogPhysicalAmountOpen(false);
+    setIsClosingDialogConfirmDifferenceOpen(true);
+  };
+
+  const handleFinalizeAndPreparePrint = () => {
+    if (!registerState.isOpen || closingDifferenceDetails === null) return;
+
+    const closingTime = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const physicalAmount = parseFloat(physicalAmountString);
+
+    // Prepare data for closing note (many are placeholders due to current tracking)
+    const summary: ClosingSummaryData = {
+      openingTimestamp: registerState.openingTimestamp,
+      closingTimestamp: closingTime,
+      initialOpeningAmount: registerState.initialOpeningAmount,
+      paymentsCard: "Não rastreado nesta versão",
+      paymentsCash: "Não rastreado nesta versão",
+      paymentsPix: "Não rastreado nesta versão",
+      paymentsZeOnline: "Não rastreado nesta versão",
+      paymentsIfoodOnline: "Não rastreado nesta versão",
+      totalReforco: "Agregado no saldo (detalhes não disponíveis)",
+      totalSangria: "Agregado no saldo (detalhes não disponíveis)",
+      discounts: "Não rastreado",
+      deliveryFees: "Não rastreado",
+      expectedSystemBalance: registerState.currentBalance,
+      countedPhysicalBalance: physicalAmount,
+      differenceAmount: closingDifferenceDetails.amount,
+      differenceStatus: closingDifferenceDetails.status,
+    };
+    setClosingSummaryData(summary);
+
+    // Actual closing of the register
     setRegisterState({
       isOpen: false,
       initialOpeningAmount: null,
       currentBalance: null,
       openingTimestamp: null,
     });
+
     toast({
-      title: "Caixa Fechado",
-      description: `Caixa fechado às ${new Date().toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })}. Saldo final: R$ ${closingAmount?.toFixed(2) || '0.00'}`,
+      title: "Caixa Fechado com Sucesso!",
+      description: `Saldo final contado: R$ ${physicalAmount.toFixed(2)}. ${closingDifferenceDetails.status}: R$ ${Math.abs(closingDifferenceDetails.amount).toFixed(2)}.`,
+    });
+    
+    setIsClosingDialogConfirmDifferenceOpen(false);
+    setIsPrintClosingNoteDialogOpen(true);
+  };
+  
+  const handlePrintClosingNote = (printMethod: "pdf" | "printer") => {
+    if (!closingSummaryData) return;
+    
+    console.log(`--- INÍCIO DO FECHAMENTO DE CAIXA (${printMethod.toUpperCase()}) ---`);
+    console.log(`Data/Hora Abertura: ${closingSummaryData.openingTimestamp}`);
+    console.log(`Data/Hora Fechamento: ${closingSummaryData.closingTimestamp}`);
+    console.log(`Valor de Abertura: R$ ${closingSummaryData.initialOpeningAmount?.toFixed(2) || '0.00'}`);
+    console.log("--- Detalhes de Pagamentos (Simulado) ---");
+    console.log(`Cartão: ${closingSummaryData.paymentsCard}`);
+    console.log(`Dinheiro: ${closingSummaryData.paymentsCash}`);
+    console.log(`PIX: ${closingSummaryData.paymentsPix}`);
+    console.log(`Zé Delivery Online: ${closingSummaryData.paymentsZeOnline}`);
+    console.log(`iFood Online: ${closingSummaryData.paymentsIfoodOnline}`);
+    console.log("--- Movimentações (Simulado) ---");
+    console.log(`Total Reforços: ${closingSummaryData.totalReforco}`);
+    console.log(`Total Sangrias: ${closingSummaryData.totalSangria}`);
+    console.log(`Descontos: ${closingSummaryData.discounts}`);
+    console.log(`Taxas de Entrega: ${closingSummaryData.deliveryFees}`);
+    console.log("--- Resumo do Fechamento ---");
+    console.log(`Saldo Esperado (Sistema): R$ ${closingSummaryData.expectedSystemBalance?.toFixed(2) || '0.00'}`);
+    console.log(`Saldo Contado (Físico): R$ ${closingSummaryData.countedPhysicalBalance.toFixed(2)}`);
+    console.log(`Diferença (${closingSummaryData.differenceStatus}): R$ ${Math.abs(closingSummaryData.differenceAmount).toFixed(2)}`);
+    console.log("--- FIM DO FECHAMENTO DE CAIXA ---");
+
+    toast({
+      title: `Relatório de Fechamento Simulado (${printMethod.toUpperCase()})`,
+      description: "Os detalhes do fechamento foram impressos no console.",
+      className: "bg-blue-500 text-white"
     });
   };
+
 
   const handleConfirmSangria = (e: FormEvent) => {
     e.preventDefault();
@@ -154,7 +282,7 @@ export default function CashRegisterPage() {
     setIsSangriaDialogOpen(false);
     setSangriaAmount("");
     setSangriaDescription("");
-    setSangriaType("Pagamento"); // Reset type
+    setSangriaType("Pagamento");
   };
 
   const handleConfirmReforco = (e: FormEvent) => {
@@ -269,7 +397,7 @@ export default function CashRegisterPage() {
             
             <div className="p-3 bg-yellow-500/10 border border-yellow-600/30 rounded-md flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-yellow-600" />
-              <p className="text-xs text-yellow-700">O saldo do caixa é atualizado por vendas finalizadas no PDV. Outras movimentações (como pedidos de delivery ou integrações diretas) podem não ser refletidas automaticamente nesta versão.</p>
+              <p className="text-xs text-yellow-700">O saldo do caixa é atualizado por vendas finalizadas no PDV e movimentações de Sangria/Reforço. Outras integrações podem não ser refletidas automaticamente.</p>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-3 px-8 pb-8">
@@ -301,7 +429,7 @@ export default function CashRegisterPage() {
                 </Button>
             </div>
             <Button 
-              onClick={handleCloseRegister} 
+              onClick={handleInitiateCloseRegister} 
               variant="destructive" 
               className="w-full text-lg py-6 shadow-md hover:shadow-lg transition-shadow" 
               size="lg"
@@ -398,7 +526,100 @@ export default function CashRegisterPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Closing Register Dialog 1: Physical Amount Input */}
+      <Dialog open={isClosingDialogPhysicalAmountOpen} onOpenChange={setIsClosingDialogPhysicalAmountOpen}>
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={handleProceedToConfirmDifference}>
+            <DialogHeader>
+              <DialogTitle>Conferir e Fechar Caixa</DialogTitle>
+              <DialogDescription>Informe o valor total contado fisicamente no caixa.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Saldo Atual em Caixa (Sistema):</p>
+                <p className="text-2xl font-bold">R$ {registerState.currentBalance?.toFixed(2) || "0.00"}</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="physicalAmountString" className="text-base font-semibold">Valor Físico Contado (R$)</Label>
+                 <div className="relative flex items-center">
+                  <DollarSign className="absolute left-3 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="physicalAmountString"
+                    type="number"
+                    placeholder="0.00"
+                    value={physicalAmountString}
+                    onChange={(e) => setPhysicalAmountString(e.target.value)}
+                    className="pl-10 text-xl h-14 appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none"
+                    required autoFocus min="0" step="0.01"
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit">Próximo</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Closing Register Dialog 2: Confirm Difference */}
+      {closingDifferenceDetails && (
+        <Dialog open={isClosingDialogConfirmDifferenceOpen} onOpenChange={setIsClosingDialogConfirmDifferenceOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Confirmar Fechamento do Caixa</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <p><strong>Saldo Atual (Sistema):</strong> R$ {registerState.currentBalance?.toFixed(2) || "0.00"}</p>
+              <p><strong>Valor Contado (Físico):</strong> R$ {parseFloat(physicalAmountString).toFixed(2)}</p>
+              <p className={`font-semibold ${closingDifferenceDetails.amount !== 0 ? (closingDifferenceDetails.amount < 0 ? 'text-destructive' : 'text-yellow-600') : 'text-green-600'}`}>
+                {closingDifferenceDetails.status}: R$ {Math.abs(closingDifferenceDetails.amount).toFixed(2)}
+              </p>
+              <DialogDescription>{closingDifferenceDetails.message}</DialogDescription>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { setIsClosingDialogConfirmDifferenceOpen(false); setIsClosingDialogPhysicalAmountOpen(true); }}>Voltar</Button>
+              <Button type="button" variant="destructive" onClick={handleFinalizeAndPreparePrint}>Confirmar e Fechar Caixa</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Closing Register Dialog 3: Print Options */}
+      {closingSummaryData && (
+        <Dialog open={isPrintClosingNoteDialogOpen} onOpenChange={setIsPrintClosingNoteDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Imprimir Nota de Fechamento</DialogTitle>
+              <DialogDescription>
+                Caixa fechado em: {closingSummaryData.closingTimestamp}. <br />
+                Saldo final contado: R$ {closingSummaryData.countedPhysicalBalance.toFixed(2)}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-muted-foreground">
+                Os detalhes completos do fechamento foram registrados e podem ser impressos.
+                (Para este protótipo, os detalhes serão impressos no console do navegador.)
+              </p>
+            </div>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => handlePrintClosingNote("pdf")}>
+                <FileText className="mr-2 h-4 w-4" /> Imprimir PDF (Simulado)
+              </Button>
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => handlePrintClosingNote("printer")}>
+                <Printer className="mr-2 h-4 w-4" /> Imprimir Cupom (Simulado)
+              </Button>
+              <DialogClose asChild className="w-full sm:w-auto">
+                <Button type="button">Concluir</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
 
+    
