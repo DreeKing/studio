@@ -39,12 +39,15 @@ interface PartialPayment {
 }
 
 interface ConfirmedSaleDetails {
+  orderId: string;
+  customerName: string;
   items: OrderItem[];
   subtotal: number;
   total: number;
   payments: PartialPayment[];
   totalPaid: number;
   change: number;
+  date: string;
 }
 
 // Interface for cash register state from localStorage
@@ -55,6 +58,18 @@ interface CashRegisterState {
   openingTimestamp: string | null;
 }
 
+// Sales History Entry for localStorage
+interface SalesHistoryEntry {
+  id: string;
+  orderId: string;
+  customer: string;
+  source: "Balcão" | "iFood" | "Zé Delivery" | "WhatsApp" | "Outro";
+  itemsDescription: string;
+  total: number;
+  status: "Concluído" | "Entregue" | "Cancelado";
+  date: string;
+}
+const LOCAL_STORAGE_SALES_KEY = "salesHistory_v1";
 
 export default function SalesPage() {
   const [currentOrderItems, setCurrentOrderItems] = useState<OrderItem[]>([]);
@@ -83,7 +98,9 @@ export default function SalesPage() {
         return;
     }
     console.log("--- Recibo ---");
-    console.log(`Data: ${new Date().toLocaleString()}`);
+    console.log(`Pedido ID: ${saleDetails.orderId}`);
+    console.log(`Cliente: ${saleDetails.customerName}`);
+    console.log(`Data: ${saleDetails.date}`);
     console.log("Formas de Pagamento:");
     saleDetails.payments.forEach(p => {
       console.log(`- ${p.method}: R$ ${p.amount.toFixed(2)}`);
@@ -115,25 +132,67 @@ export default function SalesPage() {
     });
   };
 
+  const logSaleToHistory = (saleData: ConfirmedSaleDetails) => {
+    const newHistoryEntry: SalesHistoryEntry = {
+      id: `pdv-${saleData.orderId}-${Date.now()}`,
+      orderId: saleData.orderId,
+      customer: saleData.customerName,
+      source: "Balcão",
+      itemsDescription: saleData.items.map(i => `${i.quantity}x ${i.name}`).join(', '),
+      total: saleData.total,
+      status: "Concluído",
+      date: saleData.date,
+    };
+
+    try {
+      const storedHistoryRaw = localStorage.getItem(LOCAL_STORAGE_SALES_KEY);
+      const currentHistory: SalesHistoryEntry[] = storedHistoryRaw ? JSON.parse(storedHistoryRaw) : [];
+      currentHistory.unshift(newHistoryEntry); // Add to the beginning
+      localStorage.setItem(LOCAL_STORAGE_SALES_KEY, JSON.stringify(currentHistory));
+    } catch (error) {
+      console.error("Failed to log sale to history in localStorage:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao Registrar Histórico",
+        description: "Não foi possível salvar a venda no histórico local."
+      });
+    }
+  };
+
   const handleNewSale = () => {
     setIsSaleConfirmationDialogOpen(false);
 
-    // Update cash register balance in localStorage
     if (confirmedSaleDetails) { 
       try {
         const storedState = localStorage.getItem('cashRegisterStatus_v2');
         if (storedState) {
           const parsedState: CashRegisterState = JSON.parse(storedState);
           if (parsedState.isOpen && parsedState.currentBalance !== null) {
-            parsedState.currentBalance += confirmedSaleDetails.total; // Add sale total
-            localStorage.setItem('cashRegisterStatus_v2', JSON.stringify(parsedState));
-            toast({
-              title: "Saldo do Caixa Atualizado",
-              description: `Nova venda de R$ ${confirmedSaleDetails.total.toFixed(2)} registrada no caixa.`,
-              className: "bg-blue-500 text-white" 
+            // Add only cash portion to register, considering change
+            let cashReceived = 0;
+            confirmedSaleDetails.payments.forEach(p => {
+              if (p.method === "Dinheiro") {
+                cashReceived += p.amount;
+              }
             });
+            // If total cash paid > total order and change was given, only add the order total equivalent in cash
+            // Otherwise, add all cash received for this order
+            const cashToAddToRegister = cashReceived - (confirmedSaleDetails.change > 0 && confirmedSaleDetails.payments.some(p => p.method === "Dinheiro") ? confirmedSaleDetails.change : 0);
+
+            if (cashToAddToRegister > 0) {
+                 parsedState.currentBalance += cashToAddToRegister;
+                 localStorage.setItem('cashRegisterStatus_v2', JSON.stringify(parsedState));
+                toast({
+                    title: "Saldo do Caixa Atualizado",
+                    description: `Pagamento em dinheiro (R$ ${cashToAddToRegister.toFixed(2)}) da venda adicionado ao caixa.`,
+                    className: "bg-blue-500 text-white" 
+                });
+            }
           }
         }
+        // Log sale to history
+        logSaleToHistory(confirmedSaleDetails);
+
       } catch (error) {
         console.error("Failed to update cash register balance in localStorage:", error);
         toast({
@@ -144,8 +203,8 @@ export default function SalesPage() {
       }
     }
     
-    setConfirmedSaleDetails(null); // Clear details after attempting update
-    handleClearOrderAndPayments(); // Clear current order for the new sale
+    setConfirmedSaleDetails(null); 
+    handleClearOrderAndPayments(); 
     
     toast({
         title: "Nova Venda",
@@ -280,12 +339,15 @@ export default function SalesPage() {
     }
 
     const saleData: ConfirmedSaleDetails = {
+      orderId: `PDV-${Date.now()}`,
+      customerName: "Cliente Balcão", // Placeholder for now
       items: [...currentOrderItems],
       subtotal: subtotal,
       total: orderTotal,
       payments: [...partialPaymentsList],
       totalPaid: totalPaidFromList,
       change: displayRemainingOrChange < 0 ? Math.abs(displayRemainingOrChange) : 0,
+      date: new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
     };
     setConfirmedSaleDetails(saleData);
     setIsSaleConfirmationDialogOpen(true);
@@ -490,15 +552,14 @@ export default function SalesPage() {
                 Venda Concluída!
               </DialogTitle>
               <DialogDescription>
-                A venda foi registrada com sucesso.
+                A venda foi registrada com sucesso. Pedido: {confirmedSaleDetails.orderId}
               </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-3">
+              <p className="text-sm"><strong>Cliente:</strong> {confirmedSaleDetails.customerName}</p>
+              <p className="text-sm"><strong>Data:</strong> {confirmedSaleDetails.date}</p>
               <p className="text-sm"><strong>Total da Venda:</strong> R$ {confirmedSaleDetails.total.toFixed(2)}</p>
-              <p className="text-sm"><strong>Total Pago:</strong> R$ {confirmedSaleDetails.totalPaid.toFixed(2)}</p>
-              {confirmedSaleDetails.change > 0 && (
-                <p className="text-sm font-semibold text-green-600"><strong>Troco:</strong> R$ {confirmedSaleDetails.change.toFixed(2)}</p>
-              )}
+              
               <div className="pt-2">
                 <h4 className="font-medium text-sm mb-1">Pagamentos:</h4>
                  <ScrollArea className="h-20 border rounded-md p-2">
@@ -508,7 +569,12 @@ export default function SalesPage() {
                         ))}
                     </ul>
                 </ScrollArea>
+                <p className="text-sm mt-1"><strong>Total Pago:</strong> R$ {confirmedSaleDetails.totalPaid.toFixed(2)}</p>
               </div>
+
+              {confirmedSaleDetails.change > 0 && (
+                <p className="text-sm font-semibold text-green-600"><strong>Troco:</strong> R$ {confirmedSaleDetails.change.toFixed(2)}</p>
+              )}
               <div className="pt-2">
                 <h4 className="font-medium text-sm mb-1">Itens:</h4>
                 <ScrollArea className="h-24 border rounded-md p-2">
@@ -532,4 +598,3 @@ export default function SalesPage() {
     </>
   );
 }
-

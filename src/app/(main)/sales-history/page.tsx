@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,42 +17,60 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { DateRange } from "react-day-picker"; // Import DateRange
+import type { DateRange } from "react-day-picker";
+import { useToast } from "@/hooks/use-toast";
 
 interface SalesHistoryEntry {
-  id: string;
+  id: string; // Unique ID for the history entry
+  orderId: string; // Original order ID from source system or PDV
   customer: string;
-  source: "Balcão" | "iFood" | "Zé Delivery" | "WhatsApp";
-  itemsDescription: string; 
+  source: "Balcão" | "iFood" | "Zé Delivery" | "WhatsApp" | "Outro";
+  itemsDescription: string;
   total: number;
   status: "Concluído" | "Entregue" | "Cancelado";
-  date: string; 
+  date: string; // Should be a consistent format, e.g., ISO string or 'YYYY-MM-DD HH:MM'
 }
 
+const LOCAL_STORAGE_SALES_KEY = "salesHistory_v1";
+
 const initialSalesHistoryData: SalesHistoryEntry[] = [
-  { id: "#PDV1001", customer: "Cliente Balcão 1", source: "Balcão", itemsDescription: "1x Pizza M, 1x Refri 2L", total: 55.00, status: "Concluído", date: "2024-07-29 12:30" },
-  { id: "#IFD2034", customer: "Maria Silva (iFood)", source: "iFood", itemsDescription: "2x Sushi Combo, 1x Temaki", total: 89.90, status: "Entregue", date: "2024-07-29 19:45" },
-  { id: "#ZD0788", customer: "João Pereira (Zé D.)", source: "Zé Delivery", itemsDescription: "6x Cerveja Lata, 1x Salgadinho", total: 42.50, status: "Entregue", date: "2024-07-28 20:15" },
-  { id: "#WPP0012", customer: "Ana Beatriz (WhatsApp)", source: "WhatsApp", itemsDescription: "1x Hambúrguer Artesanal, 1x Batata Frita", total: 38.00, status: "Entregue", date: "2024-07-28 13:00" },
-  { id: "#PDV1002", customer: "Cliente Balcão 2", source: "Balcão", itemsDescription: "2x Café, 1x Pão de Queijo", total: 15.00, status: "Concluído", date: "2024-07-27 09:10" },
-  { id: "#IFD2035", customer: "Carlos Souza (iFood)", source: "iFood", itemsDescription: "1x Pizza Família", total: 70.00, status: "Cancelado", date: "2024-07-27 21:00" },
-  { id: "#ZD0789", customer: "Fernanda Lima (Zé D.)", source: "Zé Delivery", itemsDescription: "12x Cerveja Long Neck", total: 72.00, status: "Entregue", date: "2024-07-29 18:00"},
-  { id: "#WPP0013", customer: "Roberto Almeida (WhatsApp)", source: "WhatsApp", itemsDescription: "Combo 2 Pessoas (Massa + Bebida)", total: 95.00, status: "Entregue", date: "2024-07-29 20:30" }
+  // This data will act as a fallback if localStorage is empty or for initial display.
+  // It will be effectively replaced as new sales are logged.
+  { id: "fallback-PDV1001", orderId: "PDV1001", customer: "Cliente Balcão 1", source: "Balcão", itemsDescription: "1x Pizza M, 1x Refri 2L", total: 55.00, status: "Concluído", date: "2024-07-29 12:30" },
+  { id: "fallback-IFD2034", orderId: "IFD2034", customer: "Maria Silva (iFood)", source: "iFood", itemsDescription: "2x Sushi Combo, 1x Temaki", total: 89.90, status: "Entregue", date: "2024-07-29 19:45" },
 ];
 
-const salesSources: Array<SalesHistoryEntry["source"] | "Todos"> = ["Todos", "Balcão", "iFood", "Zé Delivery", "WhatsApp"];
-
+const salesSources: Array<SalesHistoryEntry["source"] | "Todos"> = ["Todos", "Balcão", "iFood", "Zé Delivery", "WhatsApp", "Outro"];
 
 export default function SalesHistoryPage() {
+  const { toast } = useToast();
   const [salesHistory, setSalesHistory] = useState<SalesHistoryEntry[]>(initialSalesHistoryData);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSourceFilter, setActiveSourceFilter] = useState<SalesHistoryEntry["source"] | "Todos">("Todos");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined); // For DatePickerWithRange
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const storedHistory = localStorage.getItem(LOCAL_STORAGE_SALES_KEY);
+      if (storedHistory) {
+        setSalesHistory(JSON.parse(storedHistory));
+      } else {
+        // If no history in localStorage, use initial (or save initial to LS)
+        localStorage.setItem(LOCAL_STORAGE_SALES_KEY, JSON.stringify(initialSalesHistoryData));
+      }
+    } catch (error) {
+      console.error("Failed to load sales history from localStorage:", error);
+      toast({ variant: "destructive", title: "Erro ao carregar histórico", description: "Não foi possível carregar o histórico de vendas." });
+    }
+    setIsLoaded(true);
+  }, [toast]); // Added toast to dependency array as it's used in error handling
+
 
   const getSourceBadgeVariant = (source: SalesHistoryEntry["source"]) => {
     switch (source) {
       case "iFood": return "bg-red-500 text-white hover:bg-red-600";
-      case "Zé Delivery": return "bg-yellow-500 text-black hover:bg-yellow-600"; 
+      case "Zé Delivery": return "bg-yellow-500 text-black hover:bg-yellow-600";
       case "WhatsApp": return "bg-green-500 text-white hover:bg-green-600";
       case "Balcão": return "bg-blue-500 text-white hover:bg-blue-600";
       default: return "secondary";
@@ -73,7 +91,7 @@ export default function SalesHistoryPage() {
 
   const filteredSalesHistory = salesHistory.filter(sale => {
     const matchesSearch =
-      sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sale.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       sale.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
       sale.source.toLowerCase().includes(searchTerm.toLowerCase()) ||
       sale.itemsDescription.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -81,15 +99,48 @@ export default function SalesHistoryPage() {
 
     const matchesSource = activeSourceFilter === "Todos" || sale.source === activeSourceFilter;
     
-    // Basic date filtering (can be made more robust)
-    const saleDate = new Date(sale.date.split(" ")[0]); // Get YYYY-MM-DD part
-    const matchesDate = !dateRange || (
+    let saleDate: Date | null = null;
+    try {
+        // Attempt to parse date, assuming 'DD/MM/YYYY HH:MM' or 'YYYY-MM-DD HH:MM' like formats
+        const parts = sale.date.split(" ");
+        const dateParts = parts[0].includes('-') ? parts[0].split("-") : parts[0].split("/");
+        const timeParts = parts[1] ? parts[1].split(":") : ["00", "00"];
+        
+        if (parts[0].includes('-')) { // YYYY-MM-DD
+            saleDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]), parseInt(timeParts[0]), parseInt(timeParts[1]));
+        } else { // DD/MM/YYYY
+             saleDate = new Date(parseInt(dateParts[2]), parseInt(dateParts[1]) - 1, parseInt(dateParts[0]), parseInt(timeParts[0]), parseInt(timeParts[1]));
+        }
+    } catch (e) {
+        console.warn("Could not parse date for filtering:", sale.date, e);
+    }
+
+    const matchesDate = !dateRange || !saleDate || (
         (!dateRange.from || saleDate >= dateRange.from) &&
         (!dateRange.to || saleDate <= dateRange.to)
     );
 
     return matchesSearch && matchesSource && matchesDate;
+  }).sort((a, b) => { // Sort by date descending
+    try {
+        const dateA = new Date(a.date.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$2/$1/$3')).getTime(); // Handle DD/MM/YYYY by converting to MM/DD/YYYY for Date constructor
+        const dateB = new Date(b.date.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$2/$1/$3')).getTime();
+        return dateB - dateA;
+    } catch {
+        return 0;
+    }
   });
+  
+  if (!isLoaded) {
+    return (
+        <div className="flex flex-col gap-6">
+            <h1 className="text-3xl font-bold tracking-tight">Histórico de Vendas</h1>
+            <Card className="shadow-lg p-10 text-center">
+                <p>Carregando histórico de vendas...</p>
+            </Card>
+        </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -125,8 +176,8 @@ export default function SalesHistoryPage() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              {/* @ts-ignore TODO: Fix DatePickerWithRange to accept onDateChange prop */}
-              <DatePickerWithRange className="w-full sm:w-auto" /> 
+              {/* @ts-ignore TODO: Fix DatePickerWithRange to accept onDateChange prop. For now, this might not update the state. */}
+              <DatePickerWithRange className="w-full sm:w-auto" />
               <Button variant="outline" className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" /> Exportar</Button>
             </div>
           </div>
@@ -147,7 +198,7 @@ export default function SalesHistoryPage() {
             <TableBody>
               {filteredSalesHistory.map((sale) => (
                 <TableRow key={sale.id}>
-                  <TableCell className="font-medium">{sale.id}</TableCell>
+                  <TableCell className="font-medium">{sale.orderId}</TableCell>
                   <TableCell>{sale.customer}</TableCell>
                   <TableCell>
                     <Badge className={getSourceBadgeVariant(sale.source)}>

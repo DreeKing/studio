@@ -38,15 +38,28 @@ interface DialogPartialPayment {
   amount: number;
 }
 
+// Sales History Entry for localStorage
+interface SalesHistoryEntry {
+  id: string;
+  orderId: string;
+  customer: string;
+  source: "Balcão" | "iFood" | "Zé Delivery" | "WhatsApp" | "Outro";
+  itemsDescription: string;
+  total: number;
+  status: "Concluído" | "Entregue" | "Cancelado";
+  date: string;
+}
+const LOCAL_STORAGE_SALES_KEY = "salesHistory_v1";
+
 
 const initialDeliveries: Delivery[] = [
   { id: "#D1001", orderId: "#10238", customer: "Lucas Martins", address: "Rua das Palmeiras, 123", courier: "Carlos Silva", status: "Em Rota", totalAmount: 50.50, paymentType: "Dinheiro na Entrega" },
   { id: "#D1002", orderId: "#10234", customer: "João Silva", address: "Av. Central, 456, Apto 78", courier: null, status: "Aguardando Entregador", totalAmount: 25.00, paymentType: "Cartão na Entrega" },
   { id: "#D1003", orderId: "#P7801", customer: "Fernanda Lima (iFood)", address: "Alameda dos Anjos, 789", courier: "Ana Beatriz", status: "Entregue", totalAmount: 35.00, paymentType: "Pagamento Online iFood" },
-  { id: "#D1004", orderId: "#W9011", customer: "Roberto Carlos", address: "Rua Azul, 10", courier: null, status: "Cancelado", totalAmount: 15.00, paymentType: "PIX na Entrega" },
+  { id: "#D1004", orderId: "#W9011", customer: "Roberto Carlos (WhatsApp)", address: "Rua Azul, 10", courier: null, status: "Cancelado", totalAmount: 15.00, paymentType: "PIX na Entrega" },
   { id: "#D1005", orderId: "#10239", customer: "Mariana Souza", address: "Rua das Flores, 222", courier: null, status: "Aguardando Entregador", totalAmount: 70.00, paymentType: "Dinheiro na Entrega" },
   { id: "#D1006", orderId: "#10240", customer: "Pedro Almeida", address: "Av. Brasil, 1000", courier: "Carlos Silva", status: "Em Rota", totalAmount: 88.20, paymentType: "Cartão na Entrega" },
-  { id: "#D1007", orderId: "#Z9012", customer: "Joana Dark (Zé)", address: "Rua Amarela, 30", courier: "Roberto Alves", status: "Em Rota", totalAmount: 42.00, paymentType: "Pagamento Online Zé Delivery" },
+  { id: "#D1007", orderId: "#Z9012", customer: "Joana Dark (Zé Delivery)", address: "Rua Amarela, 30", courier: "Roberto Alves", status: "Em Rota", totalAmount: 42.00, paymentType: "Pagamento Online Zé Delivery" },
 ];
 
 const courierOptions = ["Carlos Silva", "Ana Beatriz", "Roberto Alves", "Entregador iFood", "Entregador Zé Delivery"];
@@ -62,17 +75,51 @@ export default function DeliveryPage() {
   const [deliveryList, setDeliveryList] = useState<Delivery[]>(initialDeliveries);
   const [changingCourierForDeliveryId, setChangingCourierForDeliveryId] = useState<string | null>(null);
 
-  // State for Payment Dialog
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedDeliveryForPayment, setSelectedDeliveryForPayment] = useState<Delivery | null>(null);
   
-  // State for multi-payment within the dialog
   const [dialogPartialPayments, setDialogPartialPayments] = useState<DialogPartialPayment[]>([]);
   const [dialogPaymentEntryAmountString, setDialogPaymentEntryAmountString] = useState("");
 
   const totalPaidInDialog = dialogPartialPayments.reduce((sum, p) => sum + p.amount, 0);
   const deliveryTotalAmount = selectedDeliveryForPayment?.totalAmount || 0;
   const dialogRemainingOrChange = deliveryTotalAmount - totalPaidInDialog;
+
+  const logDeliveryToHistory = (delivery: Delivery, payments: DialogPartialPayment[]) => {
+    let source: SalesHistoryEntry["source"] = "Outro";
+    if (delivery.paymentType.toLowerCase().includes("ifood") || delivery.customer.toLowerCase().includes("ifood")) {
+      source = "iFood";
+    } else if (delivery.paymentType.toLowerCase().includes("zé delivery") || delivery.customer.toLowerCase().includes("zé") || delivery.customer.toLowerCase().includes("ze delivery")) {
+      source = "Zé Delivery";
+    } else if (delivery.customer.toLowerCase().includes("whatsapp")) {
+      source = "WhatsApp";
+    }
+
+    const newHistoryEntry: SalesHistoryEntry = {
+      id: `delivery-${delivery.id}-${Date.now()}`,
+      orderId: delivery.orderId,
+      customer: delivery.customer,
+      source: source,
+      itemsDescription: `Pedido ${delivery.orderId}`, // Simplified description
+      total: delivery.totalAmount,
+      status: "Entregue",
+      date: new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    };
+
+    try {
+      const storedHistoryRaw = localStorage.getItem(LOCAL_STORAGE_SALES_KEY);
+      const currentHistory: SalesHistoryEntry[] = storedHistoryRaw ? JSON.parse(storedHistoryRaw) : [];
+      currentHistory.unshift(newHistoryEntry);
+      localStorage.setItem(LOCAL_STORAGE_SALES_KEY, JSON.stringify(currentHistory));
+    } catch (error) {
+      console.error("Failed to log delivery to history in localStorage:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao Registrar Histórico",
+        description: "Não foi possível salvar a entrega no histórico local."
+      });
+    }
+  };
 
 
   const handleAssignCourier = (deliveryId: string, courierName: string) => {
@@ -103,14 +150,18 @@ export default function DeliveryPage() {
   };
 
   const handleMarkAsDelivered = (deliveryId: string) => {
-    setDeliveryList(prevList =>
-      prevList.map(d => (d.id === deliveryId ? { ...d, status: "Entregue" } : d))
-    );
-    toast({
-      title: "Pedido Entregue!",
-      description: `Pedido ${deliveryId} foi marcado como entregue.`,
-      className: "bg-green-500 text-white"
-    });
+    const delivery = deliveryList.find(d => d.id === deliveryId);
+    if (delivery) {
+        setDeliveryList(prevList =>
+          prevList.map(d => (d.id === deliveryId ? { ...d, status: "Entregue", paymentsReceived: [{method: delivery.paymentType, amount: delivery.totalAmount}] } : d))
+        );
+        logDeliveryToHistory(delivery, [{method: delivery.paymentType, amount: delivery.totalAmount}]);
+        toast({
+          title: "Pedido Entregue!",
+          description: `Pedido ${deliveryId} foi marcado como entregue.`,
+          className: "bg-green-500 text-white"
+        });
+    }
   };
   
   const handleReopenDelivery = (deliveryId: string) => {
@@ -166,19 +217,12 @@ export default function DeliveryPage() {
         }
     });
     
-    // Only add the actual amount of the order to cash register if paid in cash, not overpayment/change
-    const cashAmountToRegister = Math.min(totalCashPaymentForRegister, selectedDeliveryForPayment.totalAmount);
-
-
     if (totalCashPaymentForRegister > 0) {
       try {
         const storedState = localStorage.getItem('cashRegisterStatus_v2');
         if (storedState) {
           const parsedState: CashRegisterState = JSON.parse(storedState);
           if (parsedState.isOpen && parsedState.currentBalance !== null) {
-            // Add only the cash portion that covers the order total to the register.
-            // If total cash paid > order total, only order total is added.
-            // If total cash paid < order total, but other methods cover the rest, add the cash paid.
             let cashContributionToOrderTotal = 0;
             let remainingOrderTotal = selectedDeliveryForPayment.totalAmount;
             
@@ -209,13 +253,14 @@ export default function DeliveryPage() {
       }
     }
     
+    const deliveryToUpdate = { ...selectedDeliveryForPayment, status: "Entregue" as Delivery["status"], paymentsReceived: [...dialogPartialPayments] };
     setDeliveryList(prevList =>
       prevList.map(d =>
-        d.id === selectedDeliveryForPayment.id
-          ? { ...d, status: "Entregue", paymentsReceived: [...dialogPartialPayments] }
-          : d
+        d.id === selectedDeliveryForPayment.id ? deliveryToUpdate : d
       )
     );
+    logDeliveryToHistory(deliveryToUpdate, dialogPartialPayments);
+
 
     toast({
       title: "Pagamento Registrado e Entrega Confirmada!",
@@ -433,7 +478,6 @@ export default function DeliveryPage() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               
-              {/* Partial Payments List in Dialog */}
               {dialogPartialPayments.length > 0 && (
                 <div className="space-y-2">
                   <Label className="font-semibold">Pagamentos Adicionados:</Label>
@@ -464,7 +508,6 @@ export default function DeliveryPage() {
                 </div>
               )}
 
-              {/* Input for new partial payment */}
               <div className="space-y-2">
                 <Label htmlFor="dialogPaymentEntryAmount">Valor a Adicionar ao Pagamento (R$)</Label>
                 <div className="relative flex items-center">
@@ -487,7 +530,6 @@ export default function DeliveryPage() {
                 <Button onClick={() => handleAddDialogPaymentPart("PIX")} disabled={!dialogPaymentEntryAmountString || parseFloat(dialogPaymentEntryAmountString) <= 0}><ScanLine className="mr-1 h-4 w-4"/>PIX</Button>
               </div>
               
-              {/* Summary of payment status */}
               <div className="mt-4 space-y-1">
                 <div className="flex justify-between text-sm">
                     <span>Total do Pedido:</span>
