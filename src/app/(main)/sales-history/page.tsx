@@ -8,16 +8,25 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Filter, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DatePickerWithRange } from "@/components/ui/date-range-picker"; // Assuming this exists
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { DateRange } from "react-day-picker"; // Import DateRange
 
 interface SalesHistoryEntry {
   id: string;
   customer: string;
   source: "Balcão" | "iFood" | "Zé Delivery" | "WhatsApp";
-  itemsDescription: string; // A summary for now
+  itemsDescription: string; 
   total: number;
   status: "Concluído" | "Entregue" | "Cancelado";
-  date: string; // Format: YYYY-MM-DD HH:MM
+  date: string; 
 }
 
 const initialSalesHistoryData: SalesHistoryEntry[] = [
@@ -31,14 +40,19 @@ const initialSalesHistoryData: SalesHistoryEntry[] = [
   { id: "#WPP0013", customer: "Roberto Almeida (WhatsApp)", source: "WhatsApp", itemsDescription: "Combo 2 Pessoas (Massa + Bebida)", total: 95.00, status: "Entregue", date: "2024-07-29 20:30" }
 ];
 
+const salesSources: Array<SalesHistoryEntry["source"] | "Todos"> = ["Todos", "Balcão", "iFood", "Zé Delivery", "WhatsApp"];
+
+
 export default function SalesHistoryPage() {
   const [salesHistory, setSalesHistory] = useState<SalesHistoryEntry[]>(initialSalesHistoryData);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeSourceFilter, setActiveSourceFilter] = useState<SalesHistoryEntry["source"] | "Todos">("Todos");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined); // For DatePickerWithRange
 
   const getSourceBadgeVariant = (source: SalesHistoryEntry["source"]) => {
     switch (source) {
       case "iFood": return "bg-red-500 text-white hover:bg-red-600";
-      case "Zé Delivery": return "bg-yellow-500 text-black hover:bg-yellow-600"; // Black text for better contrast on yellow
+      case "Zé Delivery": return "bg-yellow-500 text-black hover:bg-yellow-600"; 
       case "WhatsApp": return "bg-green-500 text-white hover:bg-green-600";
       case "Balcão": return "bg-blue-500 text-white hover:bg-blue-600";
       default: return "secondary";
@@ -57,13 +71,25 @@ export default function SalesHistoryPage() {
     }
   };
 
-  const filteredSalesHistory = salesHistory.filter(sale =>
-    sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sale.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sale.source.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sale.itemsDescription.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sale.status.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSalesHistory = salesHistory.filter(sale => {
+    const matchesSearch =
+      sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sale.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sale.source.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sale.itemsDescription.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sale.status.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesSource = activeSourceFilter === "Todos" || sale.source === activeSourceFilter;
+    
+    // Basic date filtering (can be made more robust)
+    const saleDate = new Date(sale.date.split(" ")[0]); // Get YYYY-MM-DD part
+    const matchesDate = !dateRange || (
+        (!dateRange.from || saleDate >= dateRange.from) &&
+        (!dateRange.to || saleDate <= dateRange.to)
+    );
+
+    return matchesSearch && matchesSource && matchesDate;
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -72,18 +98,36 @@ export default function SalesHistoryPage() {
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <CardTitle>Lista de Vendas Realizadas</CardTitle>
-            <div className="flex gap-2 w-full md:w-auto items-center">
-              <div className="relative flex-grow">
+            <div className="flex gap-2 w-full md:w-auto items-center flex-wrap">
+              <div className="relative flex-grow sm:flex-grow-0">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar no histórico..."
-                  className="pl-8 w-full md:min-w-[250px]"
+                  className="pl-8 w-full md:min-w-[200px] lg:min-w-[250px]"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <DatePickerWithRange /> 
-              <Button variant="outline"><Download className="mr-2 h-4 w-4" /> Exportar</Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full sm:w-auto">
+                    <Filter className="mr-2 h-4 w-4" />
+                    Origem: {activeSourceFilter}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Filtrar por Origem</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {salesSources.map(source => (
+                    <DropdownMenuItem key={source} onSelect={() => setActiveSourceFilter(source)}>
+                      {source}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {/* @ts-ignore TODO: Fix DatePickerWithRange to accept onDateChange prop */}
+              <DatePickerWithRange className="w-full sm:w-auto" /> 
+              <Button variant="outline" className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" /> Exportar</Button>
             </div>
           </div>
         </CardHeader>
@@ -98,7 +142,6 @@ export default function SalesHistoryPage() {
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Data</TableHead>
-                {/* <TableHead className="text-right">Ações</TableHead> */}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -119,11 +162,6 @@ export default function SalesHistoryPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>{sale.date}</TableCell>
-                  {/* <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </TableCell> */}
                 </TableRow>
               ))}
               {filteredSalesHistory.length === 0 && (
