@@ -8,6 +8,7 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Label } from "@/components/ui/label"; // Added Label import
 import { Download, FileText, BarChart3 } from "lucide-react"; 
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
 import { Bar as RechartsBar, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Pie as RechartsPie, PieChart as RechartsPieChart, Cell, Line as RechartsLine, LineChart as RechartsLineChart } from "recharts";
@@ -49,16 +50,16 @@ const chartConfig = {
   value: { label: "Valor (R$)" },
   sales: { label: "Vendas (R$)" },
   // Sales Channels
-  balcao: { label: "Balcão", color: "hsl(191, 65%, 25%)" }, // #15616F
-  ifood: { label: "iFood", color: "hsl(356, 83%, 51%)" }, // #EA1D2C
-  ze_delivery: { label: "Zé Delivery", color: "hsl(48, 100%, 50%)" }, // #FFCC00
-  whatsapp: { label: "WhatsApp", color: "hsl(145, 70%, 49%)" }, // #25D366
+  balcao: { label: "Balcão", color: "#15616F" }, 
+  ifood: { label: "iFood", color: "#EA1D2C" }, 
+  ze_delivery: { label: "Zé Delivery", color: "#FFCC00" }, 
+  whatsapp: { label: "WhatsApp", color: "#25D366" }, 
   // Payment Types
   dinheiro: { label: "Dinheiro", color: "hsl(211, 100%, 50%)" }, // Azul
   cartao: { label: "Cartão", color: "hsl(16, 69%, 50%)" }, // Laranja #D8542A
-  pix: { label: "PIX", color: "hsl(145, 70%, 49%)" }, // Verde #25D366
-  ze_online: { label: "Zé Delivery Online", color: "hsl(48, 100%, 50%)" }, // Amarelo #FFCC00
-  ifood_online: { label: "iFood Online", color: "hsl(356, 83%, 51%)" }, // Vermelho #EA1D2C
+  pix: { label: "PIX", color: "#25D366" }, // Verde #25D366
+  ze_online: { label: "Zé Delivery Online", color: "#FFCC00" }, // Amarelo #FFCC00
+  ifood_online: { label: "iFood Online", color: "#EA1D2C" }, // Vermelho #EA1D2C
   // Product sales (example colors)
   "Pizza Margherita": { label: "Pizza Margherita", color: "hsl(var(--chart-1))" },
   "Coca-Cola 2L": { label: "Coca-Cola 2L", color: "hsl(var(--chart-2))" },
