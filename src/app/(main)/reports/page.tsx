@@ -32,14 +32,28 @@ const salesOverTimeData = [
   { date: '07/07', sales: 4300 },
 ];
 
+const salesByPaymentTypeData = [
+  { name: 'Dinheiro', value: 2500, fill: "hsl(var(--chart-1))" },
+  { name: 'Cartão', value: 3200, fill: "hsl(var(--chart-2))" },
+  { name: 'PIX', value: 1800, fill: "hsl(var(--chart-3))" },
+  { name: 'Zé Online', value: 900, fill: "hsl(var(--chart-4))" },
+  { name: 'iFood Online', value: 1200, fill: "hsl(var(--chart-5))" },
+];
+
 const chartConfig = {
-  value: { label: "Valor" },
+  value: { label: "Valor (R$)" },
   sales: { label: "Vendas (R$)" },
   balcao: { label: "Balcão", color: "hsl(var(--chart-1))" },
   ifood: { label: "iFood", color: "hsl(var(--chart-2))" },
   ze: { label: "Zé Delivery", color: "hsl(var(--chart-3))" },
   whatsapp: { label: "WhatsApp", color: "hsl(var(--chart-4))" },
+  dinheiro: { label: "Dinheiro", color: "hsl(var(--chart-1))" },
+  cartao: { label: "Cartão", color: "hsl(var(--chart-2))" },
+  pix: { label: "PIX", color: "hsl(var(--chart-3))" },
+  zeOnline: { label: "Zé Online", color: "hsl(var(--chart-4))" },
+  ifoodOnline: { label: "iFood Online", color: "hsl(var(--chart-5))" },
 } satisfies ChartConfig;
+
 
 const COLORS = [
     "hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"
@@ -68,7 +82,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Vendas por Canal</CardTitle>
@@ -81,10 +95,10 @@ export default function ReportsPage() {
                   <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                   <RechartsPie data={salesByChannelData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
                      {salesByChannelData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                        <Cell key={`cell-channel-${index}`} fill={entry.fill} />
                       ))}
                   </RechartsPie>
-                  <ChartLegend content={<ChartLegendContent />} />
+                  <ChartLegend content={<ChartLegendContent nameKey="name" />} />
                 </RechartsPieChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -106,7 +120,7 @@ export default function ReportsPage() {
                         <ChartTooltip content={<ChartTooltipContent />} cursor={false} />
                         <RechartsBar dataKey="sales" radius={4}>
                             {topProductsData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                                <Cell key={`cell-product-${index}`} fill={entry.fill} />
                             ))}
                         </RechartsBar>
                          <ChartLegend content={<ChartLegendContent />} />
@@ -115,7 +129,30 @@ export default function ReportsPage() {
             </ChartContainer>
           </CardContent>
         </Card>
+
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle>Vendas por Tipo de Pagamento</CardTitle>
+            <CardDescription>Distribuição das vendas por forma de pagamento.</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            <ChartContainer config={chartConfig} className="w-full h-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsPieChart>
+                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                  <RechartsPie data={salesByPaymentTypeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                     {salesByPaymentTypeData.map((entry, index) => (
+                        <Cell key={`cell-payment-${index}`} fill={entry.fill} />
+                      ))}
+                  </RechartsPie>
+                  <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
       </div>
+      
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle>Ticket Médio e Vendas ao Longo do Tempo</CardTitle>
@@ -139,3 +176,4 @@ export default function ReportsPage() {
     </div>
   );
 }
+
