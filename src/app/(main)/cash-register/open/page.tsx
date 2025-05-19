@@ -34,15 +34,15 @@ interface ClosingSummaryData {
   openingTimestamp: string | null;
   closingTimestamp: string;
   initialOpeningAmount: number | null;
-  paymentsCard: string; // Placeholder
-  paymentsCash: string; // Placeholder
-  paymentsPix: string; // Placeholder
-  paymentsZeOnline: string; // Placeholder
-  paymentsIfoodOnline: string; // Placeholder
-  totalReforco: string; // Placeholder for aggregate
-  totalSangria: string; // Placeholder for aggregate
-  discounts: string; // Placeholder
-  deliveryFees: string; // Placeholder
+  paymentsCard: string; 
+  paymentsCash: string; 
+  paymentsPix: string; 
+  paymentsZeOnline: string; 
+  paymentsIfoodOnline: string; 
+  totalReforco: string; 
+  totalSangria: string; 
+  discounts: string; 
+  deliveryFees: string; 
   expectedSystemBalance: number | null;
   countedPhysicalBalance: number;
   differenceAmount: number;
@@ -589,7 +589,12 @@ export default function CashRegisterPage() {
 
       {/* Closing Register Dialog 3: Print Options */}
       {closingSummaryData && (
-        <Dialog open={isPrintClosingNoteDialogOpen} onOpenChange={setIsPrintClosingNoteDialogOpen}>
+        <Dialog open={isPrintClosingNoteDialogOpen} onOpenChange={(isOpen) => {
+            setIsPrintClosingNoteDialogOpen(isOpen);
+            if (!isOpen) {
+                setClosingSummaryData(null); 
+            }
+        }}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Imprimir Nota de Fechamento</DialogTitle>
@@ -621,5 +626,3 @@ export default function CashRegisterPage() {
     </>
   );
 }
-
-    
