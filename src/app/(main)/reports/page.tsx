@@ -12,10 +12,10 @@ import { Bar as RechartsBar, BarChart as RechartsBarChart, CartesianGrid, XAxis,
 
 // Dummy data for charts
 const salesByChannelData = [
-  { name: 'Balcão', value: 4000, fill: "var(--color-balcao)" },
-  { name: 'iFood', value: 3000, fill: "var(--color-ifood)" },
-  { name: 'Zé Delivery', value: 2000, fill: "var(--color-ze_delivery)" },
-  { name: 'WhatsApp', value: 2780, fill: "var(--color-whatsapp)" },
+  { name: 'balcao', value: 4000, fill: "var(--color-balcao)" },
+  { name: 'ifood', value: 3000, fill: "var(--color-ifood)" },
+  { name: 'ze_delivery', value: 2000, fill: "var(--color-ze_delivery)" },
+  { name: 'whatsapp', value: 2780, fill: "var(--color-whatsapp)" },
 ];
 
 const topProductsData = [
@@ -34,11 +34,11 @@ const salesOverTimeData = [
 ];
 
 const salesByPaymentTypeData = [
-  { name: 'Dinheiro', value: 2500, fill: "var(--color-dinheiro)" },
-  { name: 'Cartão', value: 3200, fill: "var(--color-cartao)" },
-  { name: 'PIX', value: 1800, fill: "var(--color-pix)" },
-  { name: 'Zé Online', value: 900, fill: "var(--color-ze_online)" },
-  { name: 'iFood Online', value: 1200, fill: "var(--color-ifood_online)" },
+  { name: 'dinheiro', value: 2500, fill: "var(--color-dinheiro)" },
+  { name: 'cartao', value: 3200, fill: "var(--color-cartao)" },
+  { name: 'pix', value: 1800, fill: "var(--color-pix)" },
+  { name: 'ze_online', value: 900, fill: "var(--color-ze_online)" },
+  { name: 'ifood_online', value: 1200, fill: "var(--color-ifood_online)" },
 ];
 
 const chartConfig = {
@@ -50,11 +50,17 @@ const chartConfig = {
   ze_delivery: { label: "Zé Delivery", color: "hsl(48, 100%, 50%)" }, // #FFCC00
   whatsapp: { label: "WhatsApp", color: "hsl(145, 70%, 49%)" }, // #25D366
   // Payment Types
-  dinheiro: { label: "Dinheiro", color: "hsl(211, 100%, 50%)" }, // Azul (ex: #007BFF)
-  cartao: { label: "Cartão", color: "hsl(30, 98%, 54%)" },   // Laranja (ex: #FD7E14)
-  pix: { label: "PIX", color: "hsl(145, 70%, 49%)" },      // Verde (#25D366 - same as WhatsApp)
-  ze_online: { label: "Zé Online", color: "hsl(48, 100%, 50%)" },// Amarelo (#FFCC00 - same as Zé Delivery)
-  ifood_online: { label: "iFood Online", color: "hsl(356, 83%, 51%)" }, // Vermelho (#EA1D2C - same as iFood)
+  dinheiro: { label: "Dinheiro", color: "hsl(211, 100%, 50%)" },
+  cartao: { label: "Cartão", color: "hsl(30, 98%, 54%)" },
+  pix: { label: "PIX", color: "hsl(145, 70%, 49%)" }, 
+  ze_online: { label: "Zé Delivery Online", color: "hsl(48, 100%, 50%)" },
+  ifood_online: { label: "iFood Online", color: "hsl(356, 83%, 51%)" },
+  // Product sales (example colors)
+  "Pizza Margherita": { label: "Pizza Margherita", color: "hsl(var(--chart-1))" },
+  "Coca-Cola 2L": { label: "Coca-Cola 2L", color: "hsl(var(--chart-2))" },
+  "X-Burger": { label: "X-Burger", color: "hsl(var(--chart-3))" },
+  "Água Mineral": { label: "Água Mineral", color: "hsl(var(--chart-4))" },
+  "Suco Laranja": { label: "Suco Laranja", color: "hsl(var(--chart-5))" },
 } satisfies ChartConfig;
 
 
@@ -97,7 +103,7 @@ export default function ReportsPage() {
                         <Cell key={`cell-channel-${index}`} fill={entry.fill} />
                       ))}
                   </RechartsPie>
-                  <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                  <ChartLegend content={<ChartLegendContent />} />
                 </RechartsPieChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -143,7 +149,7 @@ export default function ReportsPage() {
                         <Cell key={`cell-payment-${index}`} fill={entry.fill} />
                       ))}
                   </RechartsPie>
-                  <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                  <ChartLegend content={<ChartLegendContent />} />
                 </RechartsPieChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -174,3 +180,4 @@ export default function ReportsPage() {
     </div>
   );
 }
+
