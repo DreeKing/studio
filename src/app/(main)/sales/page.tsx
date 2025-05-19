@@ -47,6 +47,14 @@ interface ConfirmedSaleDetails {
   change: number;
 }
 
+// Interface for cash register state from localStorage
+interface CashRegisterState {
+  isOpen: boolean;
+  initialOpeningAmount: number | null;
+  currentBalance: number | null;
+  openingTimestamp: string | null;
+}
+
 
 export default function SalesPage() {
   const [currentOrderItems, setCurrentOrderItems] = useState<OrderItem[]>([]);
@@ -108,13 +116,41 @@ export default function SalesPage() {
   };
 
   const handleNewSale = () => {
-    handleClearOrderAndPayments();
     setIsSaleConfirmationDialogOpen(false);
-    setConfirmedSaleDetails(null);
+
+    // Update cash register balance in localStorage
+    if (confirmedSaleDetails) { 
+      try {
+        const storedState = localStorage.getItem('cashRegisterStatus_v2');
+        if (storedState) {
+          const parsedState: CashRegisterState = JSON.parse(storedState);
+          if (parsedState.isOpen && parsedState.currentBalance !== null) {
+            parsedState.currentBalance += confirmedSaleDetails.total; // Add sale total
+            localStorage.setItem('cashRegisterStatus_v2', JSON.stringify(parsedState));
+            toast({
+              title: "Saldo do Caixa Atualizado",
+              description: `Nova venda de R$ ${confirmedSaleDetails.total.toFixed(2)} registrada no caixa.`,
+              className: "bg-blue-500 text-white" 
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Failed to update cash register balance in localStorage:", error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao Atualizar Caixa",
+          description: "Não foi possível atualizar o saldo do caixa no localStorage."
+        });
+      }
+    }
+    
+    setConfirmedSaleDetails(null); // Clear details after attempting update
+    handleClearOrderAndPayments(); // Clear current order for the new sale
+    
     toast({
         title: "Nova Venda",
         description: "Pronto para o próximo pedido!",
-        className: "bg-blue-500 text-white"
+        className: "bg-green-500 text-white"
     });
   };
 
@@ -225,6 +261,15 @@ export default function SalesPage() {
       return;
     }
 
+    if (partialPaymentsList.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Nenhum Pagamento",
+        description: "Adicione pelo menos uma forma de pagamento.",
+      });
+      return;
+    }
+    
     if (displayRemainingOrChange > 0) {
       toast({
         variant: "destructive",

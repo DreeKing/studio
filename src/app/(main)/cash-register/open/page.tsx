@@ -269,7 +269,7 @@ export default function CashRegisterPage() {
             
             <div className="p-3 bg-yellow-500/10 border border-yellow-600/30 rounded-md flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-yellow-600" />
-              <p className="text-xs text-yellow-700">Vendas e outras movimentações financeiras não são automaticamente refletidas no saldo atual nesta versão.</p>
+              <p className="text-xs text-yellow-700">O saldo do caixa é atualizado por vendas finalizadas no PDV. Outras movimentações (como pedidos de delivery ou integrações diretas) podem não ser refletidas automaticamente nesta versão.</p>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-3 px-8 pb-8">
@@ -402,4 +402,3 @@ export default function CashRegisterPage() {
   );
 }
 
-      
