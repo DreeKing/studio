@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PlusCircle, Search, CreditCard, DollarSign, ScanLine, Trash2, Plus, Minus } from "lucide-react";
@@ -35,9 +36,14 @@ export default function SalesPage() {
   const [currentOrderItems, setCurrentOrderItems] = useState<OrderItem[]>([]);
   const { toast } = useToast();
   const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [amountPaidString, setAmountPaidString] = useState("");
 
   const subtotal = currentOrderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const total = subtotal; // Add discounts, taxes later
+
+  const parsedAmountPaid = parseFloat(amountPaidString) || 0;
+  const remainingOrChange = total - parsedAmountPaid;
+
 
   const handlePrintReceipt = () => {
     console.log("--- Recibo ---");
@@ -46,6 +52,14 @@ export default function SalesPage() {
     });
     console.log(`Subtotal: R$ ${subtotal.toFixed(2)}`);
     console.log(`Total: R$ ${total.toFixed(2)}`);
+    if (parsedAmountPaid > 0) {
+      console.log(`Valor Pago: R$ ${parsedAmountPaid.toFixed(2)}`);
+      if (remainingOrChange < 0) {
+        console.log(`Troco: R$ ${Math.abs(remainingOrChange).toFixed(2)}`);
+      } else if (remainingOrChange > 0) {
+        console.log(`Restante a Pagar: R$ ${remainingOrChange.toFixed(2)}`);
+      }
+    }
     console.log("----------------");
     toast({
         title: "Impressão Simulada",
@@ -55,6 +69,7 @@ export default function SalesPage() {
 
   const handleClearCart = () => {
     setCurrentOrderItems([]);
+    setAmountPaidString("");
     toast({
         title: "Carrinho Limpo",
         description: "Todos os itens foram removidos do pedido.",
@@ -96,7 +111,6 @@ export default function SalesPage() {
 
     if (typeof quantityValue === 'string') {
       if (quantityValue.trim() === "") { 
-        // If user clears the input, treat as 0 for removal.
         newQuantity = 0;
       } else {
         newQuantity = parseInt(quantityValue, 10);
@@ -106,18 +120,13 @@ export default function SalesPage() {
     }
   
     if (isNaN(newQuantity)) {
-      // If parsing results in NaN (e.g., "abc"), do not update the state.
-      // The input field will show the invalid characters, but the underlying quantity remains.
-      // On next valid input or blur, it can be corrected.
       return;
     }
   
     if (newQuantity <= 0) {
-      // If new quantity is 0 or less, remove the item.
-      // Check if item still exists before trying to remove to prevent issues if called multiple times.
       const itemExists = currentOrderItems.some(item => item.id === itemId);
       if (itemExists) {
-          handleRemoveItem(itemId); // This function already updates state and shows a toast.
+          handleRemoveItem(itemId); 
       }
     } else {
       setCurrentOrderItems(prevItems =>
@@ -224,8 +233,8 @@ export default function SalesPage() {
               )}
             </ScrollArea>
           </CardContent>
-          <CardHeader className="border-t">
-            <div className="flex justify-between text-lg font-semibold mb-2">
+          <CardHeader className="border-t pt-4 space-y-4"> {/* Changed from CardFooter to CardHeader for consistency, added pt-4 and space-y-4 */}
+            <div className="flex justify-between text-lg font-semibold">
               <span>Subtotal:</span>
               <span>R$ {subtotal.toFixed(2)}</span>
             </div>
@@ -234,6 +243,36 @@ export default function SalesPage() {
               <span>Total:</span>
               <span>R$ {total.toFixed(2)}</span>
             </div>
+
+            {/* Amount Paid and Remaining Section */}
+            {currentOrderItems.length > 0 && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="amountPaid" className="text-base font-semibold">Valor Pago (R$)</Label>
+                  <div className="relative flex items-center">
+                    <DollarSign className="absolute left-3 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="amountPaid"
+                      type="number"
+                      placeholder="0.00"
+                      value={amountPaidString}
+                      onChange={(e) => setAmountPaidString(e.target.value)}
+                      className="pl-10 text-lg h-12 appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none"
+                      min="0"
+                      step="0.01"
+                      disabled={currentOrderItems.length === 0}
+                    />
+                  </div>
+                </div>
+                { total > 0 && (
+                  <div className={`flex justify-between text-lg font-semibold ${remainingOrChange < 0 ? 'text-green-600' : remainingOrChange > 0 ? 'text-red-600' : ''}`}>
+                    <span>{remainingOrChange < 0 ? "Troco:" : "Restante:"}</span>
+                    <span>R$ {Math.abs(remainingOrChange).toFixed(2)}</span>
+                  </div>
+                )}
+              </>
+            )}
+
             <div className="mt-4 grid grid-cols-2 gap-2">
               <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white"><CreditCard className="mr-2"/> Cartão</Button>
               <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white"><DollarSign className="mr-2"/> Dinheiro</Button>
