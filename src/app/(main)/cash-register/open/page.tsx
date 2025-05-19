@@ -22,7 +22,7 @@ interface CashRegisterState {
 
 const LOCAL_STORAGE_KEY = 'cashRegisterStatus_v2'; // Incremented version due to structure change
 
-type SangriaType = "VALE" | "Compra" | "Pagamento";
+type SangriaType = "Vale" | "Compra" | "Pagamento";
 
 export default function CashRegisterPage() {
   const router = useRouter();
@@ -343,7 +343,7 @@ export default function CashRegisterPage() {
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="VALE">VALE</SelectItem>
+                    <SelectItem value="Vale">Vale</SelectItem>
                     <SelectItem value="Compra">Compra</SelectItem>
                     <SelectItem value="Pagamento">Pagamento</SelectItem>
                   </SelectContent>
