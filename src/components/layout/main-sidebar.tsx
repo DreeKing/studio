@@ -22,11 +22,11 @@ const navItems = [
   { href: "/sales", label: "Vendas (PDV)", icon: ShoppingCart },
   { href: "/orders", label: "Pedidos", icon: ClipboardList },
   { href: "/delivery", label: "Delivery", icon: Truck },
+  { href: "/sales-history", label: "Histórico de Vendas", icon: History },
   { href: "/products", label: "Produtos", icon: Box },
   { href: "/customers", label: "Clientes", icon: Users },
   { href: "/couriers", label: "Entregadores", icon: Bike },
   { href: "/reports", label: "Relatórios", icon: BarChart2 },
-  { href: "/sales-history", label: "Histórico de Vendas", icon: History },
   { href: "/settings", label: "Configurações", icon: Settings },
   { href: "/support", label: "Suporte", icon: LifeBuoy },
 ];
