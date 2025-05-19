@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Home, ShoppingCart, ClipboardList, Truck, Box, Users, Bike, BarChart2, Settings, LifeBuoy, LogOut, Landmark } from "lucide-react";
+import { Home, ShoppingCart, ClipboardList, Truck, Box, Users, Bike, BarChart2, Settings, LifeBuoy, LogOut, Landmark, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -26,6 +26,7 @@ const navItems = [
   { href: "/customers", label: "Clientes", icon: Users },
   { href: "/couriers", label: "Entregadores", icon: Bike },
   { href: "/reports", label: "Relatórios", icon: BarChart2 },
+  { href: "/sales-history", label: "Histórico de Vendas", icon: History },
   { href: "/settings", label: "Configurações", icon: Settings },
   { href: "/support", label: "Suporte", icon: LifeBuoy },
 ];
