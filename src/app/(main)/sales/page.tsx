@@ -183,6 +183,15 @@ export default function SalesPage() {
       return;
     }
 
+    if (remainingOrChange > 0) {
+      toast({
+        variant: "destructive",
+        title: "Pagamento Insuficiente",
+        description: `Ainda faltam R$ ${remainingOrChange.toFixed(2)}. Verifique o valor pago.`,
+      });
+      return;
+    }
+
     const saleData: ConfirmedSaleDetails = {
       items: [...currentOrderItems], // Create a copy
       subtotal: subtotal,
@@ -394,3 +403,4 @@ export default function SalesPage() {
     </>
   );
 }
+
