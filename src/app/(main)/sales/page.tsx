@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Search, CreditCard, DollarSign, ScanLine, Trash2, Plus, Minus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { PlusCircle, Search, CreditCard, DollarSign, ScanLine, Trash2, Plus, Minus, CheckCircle, Printer } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,12 +32,24 @@ interface OrderItem {
   price: number; // Price per unit
 }
 
+interface ConfirmedSaleDetails {
+  items: OrderItem[];
+  subtotal: number;
+  total: number;
+  paymentMethod: string;
+  paidAmount: number;
+  change: number;
+}
+
 
 export default function SalesPage() {
   const [currentOrderItems, setCurrentOrderItems] = useState<OrderItem[]>([]);
   const { toast } = useToast();
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [amountPaidString, setAmountPaidString] = useState("");
+
+  const [isSaleConfirmationDialogOpen, setIsSaleConfirmationDialogOpen] = useState(false);
+  const [confirmedSaleDetails, setConfirmedSaleDetails] = useState<ConfirmedSaleDetails | null>(null);
 
   const subtotal = currentOrderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const total = subtotal; // Add discounts, taxes later
@@ -45,19 +58,27 @@ export default function SalesPage() {
   const remainingOrChange = total - parsedAmountPaid;
 
 
-  const handlePrintReceipt = () => {
+  const handlePrintReceipt = (saleDetails: ConfirmedSaleDetails | null) => {
+    if (!saleDetails) {
+        toast({
+            variant: "destructive",
+            title: "Erro ao Imprimir",
+            description: "Detalhes da venda não encontrados."
+        });
+        return;
+    }
     console.log("--- Recibo ---");
-    currentOrderItems.forEach(item => {
+    console.log(`Data: ${new Date().toLocaleString()}`);
+    console.log(`Método de Pagamento: ${saleDetails.paymentMethod}`);
+    saleDetails.items.forEach(item => {
       console.log(`${item.quantity}x ${item.name} - R$ ${(item.price * item.quantity).toFixed(2)}`);
     });
-    console.log(`Subtotal: R$ ${subtotal.toFixed(2)}`);
-    console.log(`Total: R$ ${total.toFixed(2)}`);
-    if (parsedAmountPaid > 0) {
-      console.log(`Valor Pago: R$ ${parsedAmountPaid.toFixed(2)}`);
-      if (remainingOrChange < 0) {
-        console.log(`Troco: R$ ${Math.abs(remainingOrChange).toFixed(2)}`);
-      } else if (remainingOrChange > 0) {
-        console.log(`Restante a Pagar: R$ ${remainingOrChange.toFixed(2)}`);
+    console.log(`Subtotal: R$ ${saleDetails.subtotal.toFixed(2)}`);
+    console.log(`Total: R$ ${saleDetails.total.toFixed(2)}`);
+    if (saleDetails.paidAmount > 0) {
+      console.log(`Valor Pago: R$ ${saleDetails.paidAmount.toFixed(2)}`);
+      if (saleDetails.change > 0) { // Change is positive if paid > total
+        console.log(`Troco: R$ ${saleDetails.change.toFixed(2)}`);
       }
     }
     console.log("----------------");
@@ -70,11 +91,20 @@ export default function SalesPage() {
   const handleClearCart = () => {
     setCurrentOrderItems([]);
     setAmountPaidString("");
+    // Do not show toast here, it's part of a larger flow.
+  };
+
+  const handleNewSale = () => {
+    handleClearCart();
+    setIsSaleConfirmationDialogOpen(false);
+    setConfirmedSaleDetails(null);
     toast({
-        title: "Carrinho Limpo",
-        description: "Todos os itens foram removidos do pedido.",
+        title: "Nova Venda",
+        description: "Pronto para o próximo pedido!",
+        className: "bg-blue-500 text-white"
     });
   };
+
 
   const handleAddItemToOrder = (product: typeof products[0]) => {
     setCurrentOrderItems(prevItems => {
@@ -111,7 +141,7 @@ export default function SalesPage() {
 
     if (typeof quantityValue === 'string') {
       if (quantityValue.trim() === "") { 
-        newQuantity = 0;
+        newQuantity = 0; // Will be handled by the logic below to remove item
       } else {
         newQuantity = parseInt(quantityValue, 10);
       }
@@ -119,14 +149,14 @@ export default function SalesPage() {
       newQuantity = quantityValue;
     }
   
-    if (isNaN(newQuantity)) {
-      return;
+    if (isNaN(newQuantity)) { // if parsing failed
+      return; 
     }
   
     if (newQuantity <= 0) {
       const itemExists = currentOrderItems.some(item => item.id === itemId);
       if (itemExists) {
-          handleRemoveItem(itemId); 
+          handleRemoveItem(itemId); // This already has a toast
       }
     } else {
       setCurrentOrderItems(prevItems =>
@@ -143,162 +173,224 @@ export default function SalesPage() {
     product.category.toLowerCase().includes(productSearchTerm.toLowerCase())
   );
 
+  const handleFinalizeSale = (paymentMethod: string) => {
+    if (currentOrderItems.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Carrinho Vazio",
+        description: "Adicione itens ao pedido antes de finalizar.",
+      });
+      return;
+    }
+
+    const saleData: ConfirmedSaleDetails = {
+      items: [...currentOrderItems], // Create a copy
+      subtotal: subtotal,
+      total: total,
+      paymentMethod: paymentMethod,
+      paidAmount: parsedAmountPaid,
+      change: remainingOrChange < 0 ? Math.abs(remainingOrChange) : 0, // Troco is positive
+    };
+    setConfirmedSaleDetails(saleData);
+    setIsSaleConfirmationDialogOpen(true);
+  };
+
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-var(--header-height,4rem)-2*1.5rem)] max-h-[calc(100vh-var(--header-height,4rem)-2*1.5rem)]">
-      {/* Product Selection Area */}
-      <Card className="flex-grow lg:w-3/5 shadow-xl flex flex-col">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Selecionar Produtos</CardTitle>
-            <div className="relative w-full sm:w-1/2 md:w-1/3">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Buscar produto..." 
-                className="pl-8" 
-                value={productSearchTerm}
-                onChange={(e) => setProductSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-          <Tabs defaultValue={categories[0]} className="mt-2">
-            <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5">
-              {categories.map(cat => <TabsTrigger key={cat} value={cat}>{cat}</TabsTrigger>)}
-            </TabsList>
-          </Tabs>
-        </CardHeader>
-        <CardContent className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full pr-3">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredProducts.map(product => (
-                <Button 
-                  key={product.id} 
-                  variant="outline" 
-                  className="h-auto p-3 flex flex-col items-center justify-center aspect-square shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-primary"
-                  onClick={() => handleAddItemToOrder(product)}
-                  aria-label={`Adicionar ${product.name} ao pedido`}
-                >
-                  <Image src={product.image} alt={product.name} width={60} height={60} className="rounded-md mb-2 object-cover" data-ai-hint={product['data-ai-hint']} />
-                  <span className="text-xs text-center font-medium block truncate w-full">{product.name}</span>
-                  <span className="text-xs text-primary font-semibold">R$ {product.price.toFixed(2)}</span>
-                </Button>
-              ))}
-              {filteredProducts.length === 0 && (
-                <p className="col-span-full text-center text-muted-foreground py-10">Nenhum produto encontrado.</p>
-              )}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
-
-      {/* Order & Payment Area */}
-      <div className="lg:w-2/5 flex flex-col gap-6">
-        <Card className="flex-1 shadow-xl flex flex-col">
+    <>
+      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-var(--header-height,4rem)-2*1.5rem)] max-h-[calc(100vh-var(--header-height,4rem)-2*1.5rem)]">
+        {/* Product Selection Area */}
+        <Card className="flex-grow lg:w-3/5 shadow-xl flex flex-col">
           <CardHeader>
-            <CardTitle>Pedido Atual</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Selecionar Produtos</CardTitle>
+              <div className="relative w-full sm:w-1/2 md:w-1/3">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Buscar produto..." 
+                  className="pl-8" 
+                  value={productSearchTerm}
+                  onChange={(e) => setProductSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+            <Tabs defaultValue={categories[0]} className="mt-2">
+              <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5">
+                {categories.map(cat => <TabsTrigger key={cat} value={cat}>{cat}</TabsTrigger>)}
+              </TabsList>
+            </Tabs>
           </CardHeader>
           <CardContent className="flex-1 overflow-hidden">
-            <ScrollArea className="h-full pr-2">
-              {currentOrderItems.length > 0 ? (
-                currentOrderItems.map((item) => (
-                  <div key={item.id} className="flex items-center py-3 border-b last:border-b-0 gap-2">
-                    <div className="flex-grow">
-                      <p className="font-medium text-sm">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">R$ {item.price.toFixed(2)} /un.</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleSetItemQuantity(item.id, item.quantity - 1)} aria-label={`Diminuir quantidade de ${item.name}`}>
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => handleSetItemQuantity(item.id, e.target.value)}
-                        className="h-7 w-12 text-center px-1 appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none"
-                        min="0"
-                        aria-label={`Quantidade de ${item.name}`}
-                      />
-                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleSetItemQuantity(item.id, item.quantity + 1)} aria-label={`Aumentar quantidade de ${item.name}`}>
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    <p className="font-semibold text-sm w-20 text-right">R$ {(item.price * item.quantity).toFixed(2)}</p>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive/80" onClick={() => handleRemoveItem(item.id)} aria-label={`Remover ${item.name} do pedido`}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))
-              ) : (
-                <p className="text-muted-foreground text-center py-10">Nenhum item no pedido.</p>
-              )}
+            <ScrollArea className="h-full pr-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredProducts.map(product => (
+                  <Button 
+                    key={product.id} 
+                    variant="outline" 
+                    className="h-auto p-3 flex flex-col items-center justify-center aspect-square shadow-sm hover:shadow-md transition-shadow focus:ring-2 focus:ring-primary"
+                    onClick={() => handleAddItemToOrder(product)}
+                    aria-label={`Adicionar ${product.name} ao pedido`}
+                  >
+                    <Image src={product.image} alt={product.name} width={60} height={60} className="rounded-md mb-2 object-cover" data-ai-hint={product['data-ai-hint']} />
+                    <span className="text-xs text-center font-medium block truncate w-full">{product.name}</span>
+                    <span className="text-xs text-primary font-semibold">R$ {product.price.toFixed(2)}</span>
+                  </Button>
+                ))}
+                {filteredProducts.length === 0 && (
+                  <p className="col-span-full text-center text-muted-foreground py-10">Nenhum produto encontrado.</p>
+                )}
+              </div>
             </ScrollArea>
           </CardContent>
-          <CardHeader className="border-t pt-4 space-y-4"> {/* Changed from CardFooter to CardHeader for consistency, added pt-4 and space-y-4 */}
-            <div className="flex justify-between text-lg font-semibold">
-              <span>Subtotal:</span>
-              <span>R$ {subtotal.toFixed(2)}</span>
-            </div>
-            {/* Placeholder for discounts or taxes if needed */}
-            <div className="flex justify-between text-xl font-bold text-primary">
-              <span>Total:</span>
-              <span>R$ {total.toFixed(2)}</span>
-            </div>
-
-            {/* Amount Paid and Remaining Section */}
-            {currentOrderItems.length > 0 && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="amountPaid" className="text-base font-semibold">Valor Pago (R$)</Label>
-                  <div className="relative flex items-center">
-                    <DollarSign className="absolute left-3 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="amountPaid"
-                      type="number"
-                      placeholder="0.00"
-                      value={amountPaidString}
-                      onChange={(e) => setAmountPaidString(e.target.value)}
-                      className="pl-10 text-lg h-12 appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none"
-                      min="0"
-                      step="0.01"
-                      disabled={currentOrderItems.length === 0}
-                    />
-                  </div>
-                </div>
-                { total > 0 && (
-                  <div className={`flex justify-between text-lg font-semibold ${remainingOrChange < 0 ? 'text-green-600' : remainingOrChange > 0 ? 'text-red-600' : ''}`}>
-                    <span>{remainingOrChange < 0 ? "Troco:" : "Restante:"}</span>
-                    <span>R$ {Math.abs(remainingOrChange).toFixed(2)}</span>
-                  </div>
-                )}
-              </>
-            )}
-
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white"><CreditCard className="mr-2"/> Cartão</Button>
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white"><DollarSign className="mr-2"/> Dinheiro</Button>
-              <Button size="lg" className="bg-sky-500 hover:bg-sky-600 text-white col-span-2"><ScanLine className="mr-2"/> PIX</Button>
-            </div>
-            <Button size="lg" variant="outline" className="w-full mt-2" onClick={handlePrintReceipt}>Imprimir Recibo</Button>
-            <Button 
-              size="lg" 
-              variant="destructive" 
-              className="w-full mt-2" 
-              onClick={handleClearCart}
-              disabled={currentOrderItems.length === 0}
-            >
-              <Trash2 className="mr-2 h-4 w-4" /> Limpar Carrinho
-            </Button>
-            <Button 
-              size="lg" 
-              className="w-full mt-2"
-              disabled={currentOrderItems.length === 0}
-            >
-              Finalizar Pedido
-            </Button>
-          </CardHeader>
         </Card>
+
+        {/* Order & Payment Area */}
+        <div className="lg:w-2/5 flex flex-col gap-6">
+          <Card className="flex-1 shadow-xl flex flex-col">
+            <CardHeader>
+              <CardTitle>Pedido Atual</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full pr-2">
+                {currentOrderItems.length > 0 ? (
+                  currentOrderItems.map((item) => (
+                    <div key={item.id} className="flex items-center py-3 border-b last:border-b-0 gap-2">
+                      <div className="flex-grow">
+                        <p className="font-medium text-sm">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">R$ {item.price.toFixed(2)} /un.</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleSetItemQuantity(item.id, item.quantity - 1)} aria-label={`Diminuir quantidade de ${item.name}`}>
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleSetItemQuantity(item.id, e.target.value)}
+                          className="h-7 w-12 text-center px-1 appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none"
+                          min="0"
+                          aria-label={`Quantidade de ${item.name}`}
+                        />
+                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleSetItemQuantity(item.id, item.quantity + 1)} aria-label={`Aumentar quantidade de ${item.name}`}>
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <p className="font-semibold text-sm w-20 text-right">R$ {(item.price * item.quantity).toFixed(2)}</p>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive/80" onClick={() => handleRemoveItem(item.id)} aria-label={`Remover ${item.name} do pedido`}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground text-center py-10">Nenhum item no pedido.</p>
+                )}
+              </ScrollArea>
+            </CardContent>
+            <CardHeader className="border-t pt-4 space-y-4"> 
+              <div className="flex justify-between text-lg font-semibold">
+                <span>Subtotal:</span>
+                <span>R$ {subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-xl font-bold text-primary">
+                <span>Total:</span>
+                <span>R$ {total.toFixed(2)}</span>
+              </div>
+
+              {currentOrderItems.length > 0 && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="amountPaid" className="text-base font-semibold">Valor Pago (R$)</Label>
+                    <div className="relative flex items-center">
+                      <DollarSign className="absolute left-3 h-5 w-5 text-muted-foreground" />
+                      <Input
+                        id="amountPaid"
+                        type="number"
+                        placeholder="0.00"
+                        value={amountPaidString}
+                        onChange={(e) => setAmountPaidString(e.target.value)}
+                        className="pl-10 text-lg h-12 appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none"
+                        min="0"
+                        step="0.01"
+                        disabled={currentOrderItems.length === 0}
+                      />
+                    </div>
+                  </div>
+                  { total > 0 && (parsedAmountPaid > 0 || amountPaidString !== "") && ( // Show change/remaining only if amountPaid is entered
+                    <div className={`flex justify-between text-lg font-semibold ${remainingOrChange < 0 ? 'text-green-600' : remainingOrChange > 0 ? 'text-red-600' : ''}`}>
+                      <span>{remainingOrChange < 0 ? "Troco:" : "Restante:"}</span>
+                      <span>R$ {Math.abs(remainingOrChange).toFixed(2)}</span>
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleFinalizeSale("Cartão")} disabled={currentOrderItems.length === 0}><CreditCard className="mr-2"/> Cartão</Button>
+                <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleFinalizeSale("Dinheiro")} disabled={currentOrderItems.length === 0}><DollarSign className="mr-2"/> Dinheiro</Button>
+                <Button size="lg" className="bg-sky-500 hover:bg-sky-600 text-white col-span-2" onClick={() => handleFinalizeSale("PIX")} disabled={currentOrderItems.length === 0}><ScanLine className="mr-2"/> PIX</Button>
+              </div>
+              <Button 
+                size="lg" 
+                variant="destructive" 
+                className="w-full mt-2" 
+                onClick={() => {
+                  handleClearCart();
+                  toast({
+                      title: "Carrinho Limpo",
+                      description: "Todos os itens foram removidos do pedido.",
+                  });
+                }}
+                disabled={currentOrderItems.length === 0}
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Limpar Carrinho
+              </Button>
+            </CardHeader>
+          </Card>
+        </div>
       </div>
-    </div>
+
+      {/* Sale Confirmation Dialog */}
+      {confirmedSaleDetails && (
+        <Dialog open={isSaleConfirmationDialogOpen} onOpenChange={setIsSaleConfirmationDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center text-xl">
+                <CheckCircle className="h-6 w-6 mr-2 text-green-600" />
+                Venda Concluída!
+              </DialogTitle>
+              <DialogDescription>
+                A venda foi registrada com sucesso.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-3">
+              <p className="text-sm"><strong>Método de Pagamento:</strong> {confirmedSaleDetails.paymentMethod}</p>
+              <p className="text-sm"><strong>Total da Venda:</strong> R$ {confirmedSaleDetails.total.toFixed(2)}</p>
+              {confirmedSaleDetails.paidAmount > 0 && (
+                 <p className="text-sm"><strong>Valor Pago:</strong> R$ {confirmedSaleDetails.paidAmount.toFixed(2)}</p>
+              )}
+              {confirmedSaleDetails.change > 0 && (
+                <p className="text-sm font-semibold text-green-600"><strong>Troco:</strong> R$ {confirmedSaleDetails.change.toFixed(2)}</p>
+              )}
+              <div className="pt-2">
+                <h4 className="font-medium text-sm mb-1">Itens:</h4>
+                <ScrollArea className="h-24 border rounded-md p-2">
+                    <ul className="text-xs list-disc list-inside">
+                        {confirmedSaleDetails.items.map(item => (
+                            <li key={item.id}>{item.quantity}x {item.name}</li>
+                        ))}
+                    </ul>
+                </ScrollArea>
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => handlePrintReceipt(confirmedSaleDetails)}>
+                <Printer className="mr-2 h-4 w-4" /> Imprimir Recibo
+              </Button>
+              <Button onClick={handleNewSale}>Nova Venda</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }
-
