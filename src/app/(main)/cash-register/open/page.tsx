@@ -595,7 +595,7 @@ export default function CashRegisterPage() {
                 setClosingSummaryData(null); 
             }
         }}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Imprimir Nota de Fechamento</DialogTitle>
               <DialogDescription>
@@ -626,5 +626,7 @@ export default function CashRegisterPage() {
     </>
   );
 }
+
+    
 
     
