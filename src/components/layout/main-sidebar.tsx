@@ -2,6 +2,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react"; // Import useState and useEffect
 import {
   Sidebar,
   SidebarHeader,
@@ -32,7 +33,13 @@ const navItems = [
 ];
 
 export function MainSidebar() {
-  const pathname = usePathname();
+  const currentPathname = usePathname();
+  const [clientPathname, setClientPathname] = useState(""); // Initialize with empty string
+
+  useEffect(() => {
+    // Set the pathname from the client once component is mounted
+    setClientPathname(currentPathname);
+  }, [currentPathname]);
 
   return (
     <Sidebar variant="sidebar" collapsible="icon">
@@ -60,24 +67,30 @@ export function MainSidebar() {
       <Separator className="group-data-[collapsible=icon]:hidden" />
       <SidebarContent>
         <SidebarMenu className="p-2">
-          {navItems.map((item) => (
-            <SidebarMenuItem key={item.href}>
-              <Link href={item.href} legacyBehavior passHref>
-                <SidebarMenuButton
-                  isActive={
-                    (item.href === "/cash-register/open") 
-                      ? pathname.startsWith("/cash-register") 
-                      : (pathname === item.href || pathname.startsWith(item.href + '/'))
-                  }
-                  tooltip={{ children: item.label, side: "right", className:"bg-card text-card-foreground border-border shadow-md" }}
-                  className="justify-start"
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          ))}
+          {navItems.map((item) => {
+            // Determine isActive based on clientPathname once it's available
+            // On server and initial client render, clientPathname is "", so isActive will be false.
+            const isActive = clientPathname ? (
+              (item.href === "/cash-register/open")
+                ? clientPathname.startsWith("/cash-register")
+                : (clientPathname === item.href || (item.href !== "/" && clientPathname.startsWith(item.href + '/')))
+            ) : false;
+
+            return (
+              <SidebarMenuItem key={item.href}>
+                <Link href={item.href} legacyBehavior passHref>
+                  <SidebarMenuButton
+                    isActive={isActive}
+                    tooltip={{ children: item.label, side: "right", className:"bg-card text-card-foreground border-border shadow-md" }}
+                    className="justify-start"
+                  >
+                    <item.icon className="h-5 w-5" />
+                    <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            );
+          })}
         </SidebarMenu>
       </SidebarContent>
       <Separator className="group-data-[collapsible=icon]:hidden"/>
