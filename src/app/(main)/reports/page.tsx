@@ -50,11 +50,11 @@ const chartConfig = {
   ze_delivery: { label: "Zé Delivery", color: "hsl(48, 100%, 50%)" }, // #FFCC00
   whatsapp: { label: "WhatsApp", color: "hsl(145, 70%, 49%)" }, // #25D366
   // Payment Types
-  dinheiro: { label: "Dinheiro", color: "hsl(211, 100%, 50%)" },
-  cartao: { label: "Cartão", color: "hsl(30, 98%, 54%)" },
-  pix: { label: "PIX", color: "hsl(145, 70%, 49%)" }, 
-  ze_online: { label: "Zé Delivery Online", color: "hsl(48, 100%, 50%)" },
-  ifood_online: { label: "iFood Online", color: "hsl(356, 83%, 51%)" },
+  dinheiro: { label: "Dinheiro", color: "hsl(211, 100%, 50%)" }, // Azul
+  cartao: { label: "Cartão", color: "hsl(16, 69%, 50%)" }, // Laranja #D8542A
+  pix: { label: "PIX", color: "hsl(145, 70%, 49%)" }, // Verde #25D366
+  ze_online: { label: "Zé Delivery Online", color: "hsl(48, 100%, 50%)" }, // Amarelo #FFCC00
+  ifood_online: { label: "iFood Online", color: "hsl(356, 83%, 51%)" }, // Vermelho #EA1D2C
   // Product sales (example colors)
   "Pizza Margherita": { label: "Pizza Margherita", color: "hsl(var(--chart-1))" },
   "Coca-Cola 2L": { label: "Coca-Cola 2L", color: "hsl(var(--chart-2))" },
@@ -180,4 +180,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
 
