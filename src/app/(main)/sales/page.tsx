@@ -79,20 +79,6 @@ export default function SalesPage() {
     });
   };
 
-  const handleQuantityChange = (itemId: string, delta: number) => {
-    setCurrentOrderItems(prevItems =>
-      prevItems
-        .map(item => {
-          if (item.id === itemId) {
-            const newQuantity = item.quantity + delta;
-            return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
-          }
-          return item;
-        })
-        .filter(Boolean) as OrderItem[] // Filter out nulls (items with quantity 0)
-    );
-  };
-
   const handleRemoveItem = (itemId: string) => {
     const itemToRemove = currentOrderItems.find(item => item.id === itemId);
     setCurrentOrderItems(prevItems => prevItems.filter(item => item.id !== itemId));
@@ -104,6 +90,44 @@ export default function SalesPage() {
         });
     }
   };
+
+  const handleSetItemQuantity = (itemId: string, quantityValue: number | string) => {
+    let newQuantity: number;
+
+    if (typeof quantityValue === 'string') {
+      if (quantityValue.trim() === "") { 
+        // If user clears the input, treat as 0 for removal.
+        newQuantity = 0;
+      } else {
+        newQuantity = parseInt(quantityValue, 10);
+      }
+    } else {
+      newQuantity = quantityValue;
+    }
+  
+    if (isNaN(newQuantity)) {
+      // If parsing results in NaN (e.g., "abc"), do not update the state.
+      // The input field will show the invalid characters, but the underlying quantity remains.
+      // On next valid input or blur, it can be corrected.
+      return;
+    }
+  
+    if (newQuantity <= 0) {
+      // If new quantity is 0 or less, remove the item.
+      // Check if item still exists before trying to remove to prevent issues if called multiple times.
+      const itemExists = currentOrderItems.some(item => item.id === itemId);
+      if (itemExists) {
+          handleRemoveItem(itemId); // This function already updates state and shows a toast.
+      }
+    } else {
+      setCurrentOrderItems(prevItems =>
+        prevItems.map(item =>
+          item.id === itemId ? { ...item, quantity: newQuantity } : item
+        )
+      );
+    }
+  };
+
 
   const filteredProducts = products.filter(product => 
     product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
@@ -173,12 +197,19 @@ export default function SalesPage() {
                       <p className="font-medium text-sm">{item.name}</p>
                       <p className="text-xs text-muted-foreground">R$ {item.price.toFixed(2)} /un.</p>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(item.id, -1)} aria-label={`Diminuir quantidade de ${item.name}`}>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleSetItemQuantity(item.id, item.quantity - 1)} aria-label={`Diminuir quantidade de ${item.name}`}>
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
-                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(item.id, 1)} aria-label={`Aumentar quantidade de ${item.name}`}>
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => handleSetItemQuantity(item.id, e.target.value)}
+                        className="h-7 w-12 text-center px-1 appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none"
+                        min="0"
+                        aria-label={`Quantidade de ${item.name}`}
+                      />
+                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleSetItemQuantity(item.id, item.quantity + 1)} aria-label={`Aumentar quantidade de ${item.name}`}>
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
