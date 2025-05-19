@@ -52,10 +52,10 @@ const calculateOrderTotal = (items: OrderItem[]): number => {
 
 export default function OrdersPage() {
   const { toast } = useToast();
-  const [ordersList, setOrdersList] = useState<Order[]>(() => 
+  const [ordersList, setOrdersList] = useState<Order[]>(() =>
     initialOrdersData.map(order => ({
       ...order,
-      total: calculateOrderTotal(order.itemsList) 
+      total: calculateOrderTotal(order.itemsList)
     }))
   );
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,7 +70,7 @@ export default function OrdersPage() {
       case "Pendente": return "outline";
       case "Em Preparo": return "default";
       case "Saiu para Entrega": return "secondary";
-      case "Entregue": return "default"; 
+      case "Entregue": return "default";
       case "Cancelado": return "destructive";
       default: return "secondary";
     }
@@ -106,7 +106,7 @@ export default function OrdersPage() {
     if (!selectedOrder) return;
 
     const updatedTotal = calculateOrderTotal(editableOrderItems);
-    
+
     setOrdersList(prevOrders =>
       prevOrders.map(order =>
         order.id === selectedOrder.id
@@ -141,7 +141,7 @@ export default function OrdersPage() {
   };
 
   const filteredOrders = ordersList.filter(order => {
-    const matchesSearch = 
+    const matchesSearch =
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.source.toLowerCase().includes(searchTerm.toLowerCase());
@@ -150,9 +150,8 @@ export default function OrdersPage() {
     if (activeTab === "pendente") return order.status === "Pendente" && matchesSearch;
     if (activeTab === "em-preparo") return order.status === "Em Preparo" && matchesSearch;
     if (activeTab === "em-entrega") return order.status === "Saiu para Entrega" && matchesSearch;
-    if (activeTab === "finalizados") return (order.status === "Entregue" || order.status === "Cancelado") && matchesSearch;
-    
-    return matchesSearch; // Should not happen
+    // "finalizados" tab removed, these will appear under "todos"
+    return matchesSearch;
   });
 
   const currentModalTotal = selectedOrder ? calculateOrderTotal(editableOrderItems) : 0;
@@ -167,10 +166,10 @@ export default function OrdersPage() {
             <div className="flex gap-2 w-full md:w-auto">
               <div className="relative flex-grow md:flex-grow-0">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  type="search" 
-                  placeholder="Buscar pedido (ID, cliente...)" 
-                  className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]" 
+                <Input
+                  type="search"
+                  placeholder="Buscar pedido (ID, cliente...)"
+                  className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -194,8 +193,7 @@ export default function OrdersPage() {
                   <DropdownMenuItem onClick={() => setActiveTab("pendente")}>Pendente</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setActiveTab("em-preparo")}>Em Preparo</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setActiveTab("em-entrega")}>Saiu para Entrega</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setActiveTab("finalizados")}>Entregue</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setActiveTab("finalizados")}>Cancelado</DropdownMenuItem>
+                  {/* Removed Entregue/Cancelado from here as they are better suited for Sales History */}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -206,7 +204,7 @@ export default function OrdersPage() {
               <TabsTrigger value="pendente">Pendentes</TabsTrigger>
               <TabsTrigger value="em-preparo">Em Preparo</TabsTrigger>
               <TabsTrigger value="em-entrega">Em Entrega</TabsTrigger>
-              <TabsTrigger value="finalizados">Finalizados</TabsTrigger>
+              {/* Removed Finalizados TabTrigger */}
             </TabsList>
           </Tabs>
         </CardHeader>
@@ -233,11 +231,11 @@ export default function OrdersPage() {
                   <TableCell className="text-center">{order.itemsList.length}</TableCell>
                   <TableCell className="text-right">R$ {order.total.toFixed(2)}</TableCell>
                   <TableCell>
-                    <Badge 
+                    <Badge
                       variant={statusVariant(order.status)}
                       className={
-                        order.status === 'Entregue' ? 'bg-green-500 text-white hover:bg-green-600' : 
-                        order.status === 'Em Preparo' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 
+                        order.status === 'Entregue' ? 'bg-green-500 text-white hover:bg-green-600' :
+                        order.status === 'Em Preparo' ? 'bg-primary text-primary-foreground hover:bg-primary/90' :
                         order.status === 'Saiu para Entrega' ? 'bg-blue-500 text-white hover:bg-blue-600' : ''
                       }
                     >
@@ -286,7 +284,7 @@ export default function OrdersPage() {
                 Cliente: {selectedOrder.customer} | Origem: {selectedOrder.source} | Data: {selectedOrder.date}
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="flex-grow overflow-y-auto pr-2 space-y-4 py-4">
               <h3 className="text-lg font-semibold mb-2 flex items-center">
                 <ShoppingCart className="mr-2 h-5 w-5" />
@@ -329,7 +327,7 @@ export default function OrdersPage() {
                 <p className="text-muted-foreground text-center py-4">Nenhum item neste pedido.</p>
               )}
             </div>
-            
+
             <div className="border-t pt-4">
               <div className="flex justify-between text-lg font-semibold mb-2">
                 <span>Subtotal:</span>
@@ -356,5 +354,3 @@ export default function OrdersPage() {
     </div>
   );
 }
-
-    
